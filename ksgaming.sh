@@ -109,7 +109,7 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
-# --- UNINSTALL LOGIC (NEW) ---
+# --- UNINSTALL LOGIC ---
 uninstall_addon() {
     header
     print_c "UNINSTALL ADDON" "$RED"
@@ -198,7 +198,7 @@ menu_blueprint() {
         draw_sub
         print_opt "1" "Install Framework (Custom Script)" "$PINK"
         print_opt "2" "Open KS Addon Store" "$GREEN"
-        print_opt "3" "Update All Extensions"
+        print_opt "3" "Update Framework/Addons"
         print_opt "4" "Toggle Dev Mode (Debug)"
         draw_sub
         print_opt "5" "Uninstall Extension" "$ORANGE"
@@ -210,7 +210,6 @@ menu_blueprint() {
         
         case $opt in
             1) 
-                # DOWNLOADS YOUR CUSTOM INSTALLER FROM YOUR REPO
                 echo ""
                 info "Downloading blueprint-installer.sh..."
                 cd "$PANEL_DIR" || exit
@@ -228,7 +227,12 @@ menu_blueprint() {
                 read -p "Press Enter..."
                 ;;
             2) menu_addons ;;
-            3) cd "$PANEL_DIR" && blueprint -rerun-install; success "Updated."; read -p "Press Enter..." ;;
+            3) 
+                # UPDATED: Now uses 'blueprint -upgrade'
+                cd "$PANEL_DIR" && blueprint -upgrade 
+                success "Update process finished."
+                read -p "Press Enter..." 
+                ;;
             4) cd "$PANEL_DIR" && sed -i 's/APP_ENV=production/APP_ENV=local/g' .env; success "Dev Mode Set."; sleep 0.5 ;;
             5) uninstall_addon ;;
             6) uninstall_framework ;;
