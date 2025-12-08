@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - FINAL STABLE EDITION
-#   Repo: kiruthik123/panelinstaler
+#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION
+#   Connected to: github.com/kiruthik123/panelinstaler
 # =========================================================
 
 # --- GITHUB CONFIGURATION ---
@@ -163,7 +163,7 @@ menu_blueprint() {
         header
         print_c "BLUEPRINT SYSTEM" "$CYAN"
         draw_sub
-        print_opt "1" "Install Framework (REQUIRED)" "$PINK"
+        print_opt "1" "Install Framework (YOUR CUSTOM SCRIPT)" "$PINK"
         print_opt "2" "Open KS Addon Store" "$GREEN"
         print_opt "3" "Update All Extensions"
         print_opt "4" "Toggle Dev Mode (Debug)"
@@ -174,9 +174,22 @@ menu_blueprint() {
         
         case $opt in
             1) 
-                info "Installing Framework..."
-                bash <(curl -s https://raw.githubusercontent.com/tehnoetic/blueprint/main/install.sh)
-                success "Done."
+                # EDITED: Downloads blueprint-installer.sh from your repo
+                echo ""
+                info "Downloading custom installer..."
+                cd "$PANEL_DIR" || exit
+                rm -f blueprint-installer.sh
+                
+                wget -q --show-progress "$BASE_URL/blueprint-installer.sh" -O blueprint-installer.sh
+                
+                if [ -f "blueprint-installer.sh" ]; then
+                    info "Running Installer..."
+                    bash blueprint-installer.sh
+                    rm blueprint-installer.sh
+                    success "Done."
+                else
+                    error "Could not find 'blueprint-installer.sh' in your repo."
+                fi
                 read -p "Press Enter..."
                 ;;
             2) menu_addons ;;
@@ -211,7 +224,7 @@ menu_panel() {
         read opt
         case $opt in
             1) 
-                # FIXED: Uses official installer script directly
+                # USING OFFICIAL INSTALLER
                 echo -e "${YELLOW}Starting Official Installer...${NC}"
                 bash <(curl -s https://pterodactyl-installer.se) --panel
                 read -p "Press Enter..."
@@ -250,7 +263,7 @@ menu_wings() {
         read opt
         case $opt in
             1) 
-                # FIXED: Uses official installer script directly
+                # USING OFFICIAL INSTALLER
                 echo -e "${YELLOW}Starting Official Wings Installer...${NC}"
                 bash <(curl -s https://pterodactyl-installer.se) --wings
                 read -p "Press Enter..."
