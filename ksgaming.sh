@@ -75,7 +75,7 @@ install_bp() {
     draw_sub
     echo ""
     
-    # 1. Check Blueprint
+    # Check Blueprint
     if ! command -v blueprint &> /dev/null; then
         error "Blueprint framework is missing."
         echo -e "${GREY}Please go to Menu 4 -> Option 1 first.${NC}"
@@ -83,12 +83,10 @@ install_bp() {
         return
     fi
 
-    # 2. Download
+    # Download
     cd "$PANEL_DIR" || exit
     info "Downloading $file..."
     rm -f "$file"
-    
-    # Fast download with progress bar
     wget -q --show-progress "$url" -O "$file"
 
     if [ ! -f "$file" ]; then
@@ -99,61 +97,47 @@ install_bp() {
         return
     fi
 
-    # 3. Install
+    # Install
     echo ""
-    info "Running Blueprint Installer..."
+    info "Running Installer..."
     blueprint -install "$file"
 
-    # 4. Finish
+    # Finish
     rm -f "$file"
     echo ""
     success "Installation Complete!"
     read -p "Press Enter to continue..."
 }
 
-# --- UNINSTALLER LOGIC (NEW) ---
-remove_addon() {
+# --- UNINSTALL LOGIC (NEW) ---
+uninstall_addon() {
     header
     print_c "UNINSTALL ADDON" "$RED"
     draw_sub
-    echo -e "${YELLOW}Enter the identifier of the addon to remove.${NC}"
-    echo -e "${GREY}(Example: 'mctools', 'nebulatheme', 'recolor')${NC}"
-    echo ""
-    read -p "Identifier Name: " id_name
-
-    if [ -z "$id_name" ]; then
-        error "No name entered."
-        read -p "Press Enter..."
-        return
-    fi
-
-    echo ""
-    info "Removing $id_name..."
-    cd "$PANEL_DIR" || exit
-    blueprint -remove "$id_name"
+    echo -e "${YELLOW}Enter the identifier name (e.g. mctools, recolor):${NC}"
+    read -p "> " idname
     
-    echo ""
-    success "Process Finished."
-    read -p "Press Enter to return..."
+    if [ -z "$idname" ]; then error "Cancelled."; sleep 1; return; fi
+    
+    cd "$PANEL_DIR" || exit
+    info "Removing $idname..."
+    blueprint -remove "$idname"
+    success "Finished."
+    read -p "Press Enter..."
 }
 
-remove_framework() {
+uninstall_framework() {
     header
-    print_c "UNINSTALL BLUEPRINT FRAMEWORK" "$RED"
+    print_c "UNINSTALL FRAMEWORK" "$RED"
     draw_sub
-    echo -e "${YELLOW}WARNING: This will remove the 'blueprint' command.${NC}"
-    echo -e "${GREY}To fully revert panel changes, you may need to reinstall panel files.${NC}"
+    echo -e "${YELLOW}WARNING: This removes the Blueprint tool.${NC}"
+    echo -e "${GREY}To fully revert visual changes, you may need to reinstall Panel files (Menu 1 -> 1).${NC}"
     echo ""
-    read -p "Type 'yes' to confirm removal: " confirm
-
-    if [ "$confirm" == "yes" ]; then
-        info "Removing Blueprint binary..."
+    read -p "Type 'yes' to confirm: " c
+    if [ "$c" == "yes" ]; then
         rm -rf /usr/local/bin/blueprint
         rm -rf "$PANEL_DIR/blueprint"
-        
-        echo ""
-        success "Framework Removed."
-        echo -e "${CYAN}Tip: Use Main Menu -> Option 1 -> Install Panel to restore original files.${NC}"
+        success "Blueprint removed from system."
     else
         echo "Cancelled."
     fi
@@ -187,7 +171,7 @@ menu_addons() {
         draw_sub
         print_opt "0" "Back" "$RED"
         draw_bar
-        echo -ne "${CYAN}  Select Addon [0-10]: ${NC}"
+        echo -ne "${CYAN}  Select Addon: ${NC}"
         read opt
 
         case $opt in
@@ -212,12 +196,12 @@ menu_blueprint() {
         header
         print_c "BLUEPRINT SYSTEM" "$CYAN"
         draw_sub
-        print_opt "1" "Install Framework (REQUIRED)" "$PINK"
+        print_opt "1" "Install Framework (Custom Script)" "$PINK"
         print_opt "2" "Open KS Addon Store" "$GREEN"
         print_opt "3" "Update All Extensions"
         print_opt "4" "Toggle Dev Mode (Debug)"
         draw_sub
-        print_opt "5" "Uninstall an Addon" "$ORANGE"
+        print_opt "5" "Uninstall Extension" "$ORANGE"
         print_opt "6" "Uninstall Framework" "$RED"
         print_opt "0" "Back" "$RED"
         draw_bar
@@ -226,25 +210,28 @@ menu_blueprint() {
         
         case $opt in
             1) 
-                info "Installing Framework..."
-                bash <(curl -s https://raw.githubusercontent.com/tehnoetic/blueprint/main/install.sh)
-                success "Done."
+                # DOWNLOADS YOUR CUSTOM INSTALLER FROM YOUR REPO
+                echo ""
+                info "Downloading blueprint-installer.sh..."
+                cd "$PANEL_DIR" || exit
+                rm -f blueprint-installer.sh
+                wget -q --show-progress "$BASE_URL/blueprint-installer.sh" -O blueprint-installer.sh
+                
+                if [ -f "blueprint-installer.sh" ]; then
+                    info "Running Custom Installer..."
+                    bash blueprint-installer.sh
+                    rm blueprint-installer.sh
+                    success "Done."
+                else
+                    error "File blueprint-installer.sh not found in repo."
+                fi
                 read -p "Press Enter..."
                 ;;
             2) menu_addons ;;
-            3) 
-                cd "$PANEL_DIR" && blueprint -rerun-install
-                success "Updated."
-                read -p "Press Enter..."
-                ;;
-            4) 
-                cd "$PANEL_DIR"
-                sed -i 's/APP_ENV=production/APP_ENV=local/g' .env
-                success "Dev Mode Toggled."
-                sleep 0.5
-                ;;
-            5) remove_addon ;;
-            6) remove_framework ;;
+            3) cd "$PANEL_DIR" && blueprint -rerun-install; success "Updated."; read -p "Press Enter..." ;;
+            4) cd "$PANEL_DIR" && sed -i 's/APP_ENV=production/APP_ENV=local/g' .env; success "Dev Mode Set."; sleep 0.5 ;;
+            5) uninstall_addon ;;
+            6) uninstall_framework ;;
             0) return ;;
         esac
     done
@@ -269,21 +256,9 @@ menu_panel() {
                 bash <(curl -s https://pterodactyl-installer.se) --panel
                 read -p "Press Enter..."
                 ;;
-            2) 
-                cd "$PANEL_DIR" && php artisan p:user:make
-                read -p "Press Enter..." 
-                ;;
-            3) 
-                cd "$PANEL_DIR"
-                php artisan view:clear && php artisan config:clear
-                success "Cache Cleared."
-                sleep 0.5
-                ;;
-            4) 
-                chown -R www-data:www-data "$PANEL_DIR"/*
-                success "Permissions Fixed."
-                sleep 0.5
-                ;;
+            2) cd "$PANEL_DIR" && php artisan p:user:make; read -p "Press Enter..." ;;
+            3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cache Cleared."; sleep 0.5 ;;
+            4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Permissions Fixed."; sleep 0.5 ;;
             0) return ;;
         esac
     done
@@ -303,24 +278,13 @@ menu_wings() {
         read opt
         case $opt in
             1) 
-                echo -e "${YELLOW}Starting Official Wings Installer...${NC}"
+                echo -e "${YELLOW}Starting Official Installer...${NC}"
                 bash <(curl -s https://pterodactyl-installer.se) --wings
                 read -p "Press Enter..."
                 ;;
             2) 
-                echo ""
-                echo -e "${YELLOW}Paste your Wings Configuration Command:${NC}"
-                read -r CMD
-                eval "$CMD"
-                systemctl enable --now wings
-                success "Configured & Started."
-                sleep 0.5
-                ;;
-            3) 
-                systemctl restart wings
-                success "Wings Restarted."
-                sleep 0.5
-                ;;
+                echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
+            3) systemctl restart wings; success "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
         esac
     done
@@ -342,42 +306,12 @@ menu_toolbox() {
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) 
-                header
-                free -h | grep Mem
-                df -h / | awk 'NR==2'
-                read -p "Press Enter..." 
-                ;;
-            2) 
-                fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-                echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
-                success "Swap Added."
-                sleep 0.5
-                ;;
-            3) 
-                apt-get install speedtest-cli -y -qq
-                speedtest-cli --simple
-                read -p "Press Enter..." 
-                ;;
-            4) 
-                apt install ufw -y -qq
-                ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw allow 8080 && ufw allow 2022
-                yes | ufw enable
-                success "Firewall Secure."
-                sleep 0.5
-                ;;
-            5) 
-                mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql
-                success "Backup saved to /root/"
-                read -p "Press Enter..." 
-                ;;
-            6) 
-                apt install certbot -y -qq
-                echo ""
-                read -p "Enter Domain: " DOM
-                certbot certonly --standalone -d $DOM
-                read -p "Press Enter..." 
-                ;;
+            1) header; free -h | grep Mem; df -h / | awk 'NR==2'; read -p "Press Enter..." ;;
+            2) fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile; echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab; success "Swap Added."; sleep 0.5 ;;
+            3) apt-get install speedtest-cli -y -qq; speedtest-cli --simple; read -p "Press Enter..." ;;
+            4) apt install ufw -y -qq; ufw allow 22; ufw allow 80; ufw allow 443; ufw allow 8080; ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
+            5) mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql; success "Backup saved to /root/"; read -p "Press Enter..." ;;
+            6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
             0) return ;;
         esac
     done
@@ -407,22 +341,15 @@ while true; do
         1) menu_panel ;;
         2) menu_wings ;;
         3) 
-            echo -e "${YELLOW}Starting Official Hybrid Installer...${NC}"
+            echo -e "${YELLOW}Starting Official Installer...${NC}"
             bash <(curl -s https://pterodactyl-installer.se) --panel --wings
             read -p "Press Enter..."
             ;;
         4) menu_blueprint ;;
         5) menu_toolbox ;;
         6) 
-            echo ""
-            echo -e "${RED}WARNING: THIS WILL DELETE ALL DATA.${NC}"
-            read -p "Type 'yes' to confirm: " CONF
-            if [ "$CONF" == "yes" ]; then
-                rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings
-                success "Deleted."
-            fi
-            sleep 1
-            ;;
+            echo ""; echo -e "${RED}WARNING: DELETE ALL DATA?${NC}"; read -p "Type 'yes': " CONF
+            if [ "$CONF" == "yes" ]; then rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings; success "Deleted."; fi; sleep 1 ;;
         0) clear; exit 0 ;;
         *) error "Invalid"; sleep 0.5 ;;
     esac
