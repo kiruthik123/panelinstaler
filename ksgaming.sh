@@ -1,20 +1,17 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION
+#   KS HOSTING BY KSGAMING - SUPREME NETWORK EDITION
 #   Addons Repo: kiruthik123/panelinstaler
 #   Installer Repo: kiruthik123/installer
 # =========================================================
 
-# --- GITHUB CONFIGURATION (FOR ADDONS) ---
+# --- GITHUB CONFIGURATION ---
 GH_USER="kiruthik123"
 GH_REPO="panelinstaler"
 GH_BRANCH="main"
 
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
-
-# --- INSTALLER URL (FOR PANEL/WINGS) ---
-# This uses your specific installer repo
 INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
 
 # --- DIRECTORIES ---
@@ -63,13 +60,13 @@ header() {
     clear
     draw_bar
     print_c "KS HOSTING" "$PINK"
-    print_c "Repo: $GH_USER/$GH_REPO" "$CYAN"
+    print_c "ULTIMATE MANAGER" "$CYAN"
     draw_bar
     print_c "User: $USER | IP: $(hostname -I | awk '{print $1}')" "$GREY"
     draw_bar
 }
 
-# --- INSTALLER LOGIC (ADDONS) ---
+# --- INSTALLER LOGIC ---
 install_bp() {
     local name="$1"
     local file="$2"
@@ -80,7 +77,6 @@ install_bp() {
     draw_sub
     echo ""
     
-    # Check Blueprint
     if ! command -v blueprint &> /dev/null; then
         error "Blueprint framework is missing."
         echo -e "${GREY}Please go to Menu 4 -> Option 1 first.${NC}"
@@ -88,7 +84,6 @@ install_bp() {
         return
     fi
 
-    # Download
     cd "$PANEL_DIR" || exit
     info "Downloading $file..."
     rm -f "$file"
@@ -97,21 +92,61 @@ install_bp() {
     if [ ! -f "$file" ]; then
         echo ""
         error "Download Failed!"
-        echo -e "${GREY}Could not find '$file' in your repository.${NC}"
+        echo -e "${GREY}File not found in repo: $file${NC}"
         read -p "Press Enter..."
         return
     fi
 
-    # Install
     echo ""
     info "Running Installer..."
     blueprint -install "$file"
-
-    # Finish
     rm -f "$file"
+    
     echo ""
     success "Installation Complete!"
     read -p "Press Enter to continue..."
+}
+
+# --- NETWORK INSTALLERS ---
+install_tailscale() {
+    header
+    print_c "TAILSCALE VPN" "$ORANGE"
+    draw_sub
+    info "Downloading Tailscale..."
+    curl -fsSL https://tailscale.com/install.sh | sh
+    echo ""
+    info "Starting Authentication..."
+    tailscale up
+    echo ""
+    success "Tailscale Active!"
+    read -p "Press Enter..."
+}
+
+install_cloudflare() {
+    header
+    print_c "CLOUDFLARE TUNNEL" "$ORANGE"
+    draw_sub
+    info "Installing Cloudflared..."
+    # Add Cloudflare GPG key and Repo
+    mkdir -p --mode=0755 /usr/share/keyrings
+    curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+    echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
+    apt-get update && apt-get install cloudflared -y
+    
+    echo ""
+    echo -e "${YELLOW}1. Create a tunnel at https://one.dash.cloudflare.com/${NC}"
+    echo -e "${YELLOW}2. Copy the 'Connector' command.${NC}"
+    echo ""
+    read -p "Paste Token/Command Here: " cf_cmd
+    
+    if [[ "$cf_cmd" == *"cloudflared"* ]]; then
+        eval "$cf_cmd"
+        success "Tunnel Started!"
+    else
+        cloudflared service install "$cf_cmd"
+        success "Tunnel Installed."
+    fi
+    read -p "Press Enter..."
 }
 
 # --- UNINSTALL LOGIC ---
@@ -120,25 +155,21 @@ uninstall_addon() {
         header
         print_c "UNINSTALL MANAGER" "$RED"
         draw_sub
-        echo -e "${GREY}  Select the number to uninstall:${NC}"
-        echo ""
-        
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
         print_opt "4" "Euphoria Theme"
-        print_opt "5" "MC Tools (Editor)"
+        print_opt "5" "MC Tools"
         print_opt "6" "MC Logs"
         print_opt "7" "Player Listing"
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor"
-        print_opt "10" "Subdomains Manager"
-        
+        print_opt "10" "Subdomains"
         draw_sub
-        print_opt "M" "Manual Input (Type Identifier)" "$YELLOW"
+        print_opt "M" "Manual Input" "$YELLOW"
         print_opt "0" "Back" "$GREY"
         draw_bar
-        echo -ne "${RED}  Remove Option: ${NC}"
+        echo -ne "${RED}  Select Removal: ${NC}"
         read rm_opt
         
         case $rm_opt in
@@ -152,42 +183,30 @@ uninstall_addon() {
             8) id="votifiertester" ;;
             9) id="dbedit" ;;
             10) id="subdomains" ;;
-            "M"|"m") 
-                echo ""
-                echo -e "${YELLOW}Type the exact identifier name:${NC}"
-                read -p "> " id
-                ;;
+            "M"|"m") echo ""; read -p "Identifier Name: " id ;;
             0) return ;;
-            *) error "Invalid option"; sleep 1; continue ;;
+            *) error "Invalid"; sleep 1; continue ;;
         esac
 
         if [ -n "$id" ]; then
             echo ""
-            info "Removing extension: $id..."
+            info "Removing $id..."
             cd "$PANEL_DIR" || exit
             blueprint -remove "$id"
-            echo ""
-            success "Removal process finished."
-            read -p "Press Enter to return..."
+            success "Removed."
+            read -p "Press Enter..."
             return
         fi
     done
 }
 
 uninstall_framework() {
-    header
-    print_c "UNINSTALL FRAMEWORK" "$RED"
-    draw_sub
-    echo -e "${YELLOW}WARNING: This removes the Blueprint tool.${NC}"
-    echo -e "${GREY}To fully revert changes, you may need to reinstall Panel files.${NC}"
-    echo ""
+    echo ""; echo -e "${RED}WARNING: Removing Blueprint Framework.${NC}"; 
     read -p "Type 'yes' to confirm: " c
     if [ "$c" == "yes" ]; then
         rm -rf /usr/local/bin/blueprint
         rm -rf "$PANEL_DIR/blueprint"
-        success "Blueprint removed from system."
-    else
-        echo "Cancelled."
+        success "Framework Removed."
     fi
     read -p "Press Enter..."
 }
@@ -219,7 +238,7 @@ menu_addons() {
         draw_sub
         print_opt "0" "Back" "$RED"
         draw_bar
-        echo -ne "${CYAN}  Select Addon [0-10]: ${NC}"
+        echo -ne "${CYAN}  Select Addon: ${NC}"
         read opt
 
         case $opt in
@@ -244,10 +263,10 @@ menu_blueprint() {
         header
         print_c "BLUEPRINT SYSTEM" "$CYAN"
         draw_sub
-        print_opt "1" "Install Framework (Custom Script)" "$PINK"
+        print_opt "1" "Install Framework (Custom)" "$PINK"
         print_opt "2" "Open KS Addon Store" "$GREEN"
-        print_opt "3" "Update Framework/Addons"
-        print_opt "4" "Toggle Dev Mode (Debug)"
+        print_opt "3" "Update All Extensions"
+        print_opt "4" "Toggle Dev Mode"
         draw_sub
         print_opt "5" "Uninstall Extension" "$ORANGE"
         print_opt "6" "Uninstall Framework" "$RED"
@@ -258,28 +277,21 @@ menu_blueprint() {
         
         case $opt in
             1) 
-                echo ""
-                info "Downloading blueprint-installer.sh..."
+                echo ""; info "Downloading Custom Installer..."
                 cd "$PANEL_DIR" || exit
                 rm -f blueprint-installer.sh
                 wget -q --show-progress "$BASE_URL/blueprint-installer.sh" -O blueprint-installer.sh
-                
                 if [ -f "blueprint-installer.sh" ]; then
-                    info "Running Custom Installer..."
                     bash blueprint-installer.sh
                     rm blueprint-installer.sh
                     success "Done."
                 else
-                    error "File blueprint-installer.sh not found in repo."
+                    error "Custom installer not found in repo."
                 fi
                 read -p "Press Enter..."
                 ;;
             2) menu_addons ;;
-            3) 
-                cd "$PANEL_DIR" && blueprint -upgrade 
-                success "Update process finished."
-                read -p "Press Enter..." 
-                ;;
+            3) cd "$PANEL_DIR" && blueprint -upgrade; success "Updated."; read -p "Press Enter..." ;;
             4) cd "$PANEL_DIR" && sed -i 's/APP_ENV=production/APP_ENV=local/g' .env; success "Dev Mode Set."; sleep 0.5 ;;
             5) uninstall_addon ;;
             6) uninstall_framework ;;
@@ -295,22 +307,17 @@ menu_panel() {
         draw_sub
         print_opt "1" "Install Panel (Custom Installer)"
         print_opt "2" "Create Admin User"
-        print_opt "3" "Clear Cache (Fix 500 Error)"
+        print_opt "3" "Clear Cache"
         print_opt "4" "Reset Permissions"
         print_opt "0" "Back" "$RED"
         draw_bar
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) 
-                echo -e "${YELLOW}Running KS Installer...${NC}"
-                # Runs YOUR custom install script
-                bash <(curl -s $INSTALLER_URL)
-                read -p "Press Enter..."
-                ;;
+            1) echo -e "${YELLOW}Running KS Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
             2) cd "$PANEL_DIR" && php artisan p:user:make; read -p "Press Enter..." ;;
-            3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cache Cleared."; sleep 0.5 ;;
-            4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Permissions Fixed."; sleep 0.5 ;;
+            3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cleared."; sleep 0.5 ;;
+            4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Fixed."; sleep 0.5 ;;
             0) return ;;
         esac
     done
@@ -329,14 +336,8 @@ menu_wings() {
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) 
-                echo -e "${YELLOW}Running KS Wings Installer...${NC}"
-                # Runs YOUR custom install script
-                bash <(curl -s $INSTALLER_URL)
-                read -p "Press Enter..."
-                ;;
-            2) 
-                echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
+            1) echo -e "${YELLOW}Running KS Wings Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
+            2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
             3) systemctl restart wings; success "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
         esac
@@ -354,6 +355,9 @@ menu_toolbox() {
         print_opt "4" "Auto-Firewall"
         print_opt "5" "Database Backup"
         print_opt "6" "Install SSL (Certbot)"
+        draw_sub
+        print_opt "7" "Install Tailscale (VPN)" "$ORANGE"
+        print_opt "8" "Setup Cloudflare Tunnel" "$ORANGE"
         print_opt "0" "Back" "$RED"
         draw_bar
         echo -ne "${CYAN}  Select: ${NC}"
@@ -365,6 +369,8 @@ menu_toolbox() {
             4) apt install ufw -y -qq; ufw allow 22; ufw allow 80; ufw allow 443; ufw allow 8080; ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
             5) mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql; success "Backup saved to /root/"; read -p "Press Enter..." ;;
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
+            7) install_tailscale ;;
+            8) install_cloudflare ;;
             0) return ;;
         esac
     done
@@ -394,8 +400,7 @@ while true; do
         1) menu_panel ;;
         2) menu_wings ;;
         3) 
-            echo -e "${YELLOW}Running KS Hybrid Installer...${NC}"
-            # Runs YOUR custom install script
+            echo -e "${YELLOW}Starting KS Hybrid Installer...${NC}"
             bash <(curl -s $INSTALLER_URL)
             read -p "Press Enter..."
             ;;
