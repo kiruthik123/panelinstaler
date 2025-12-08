@@ -109,21 +109,69 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
-# --- UNINSTALL LOGIC ---
+# --- UNINSTALL LOGIC (UPDATED WITH NUMBERS) ---
 uninstall_addon() {
-    header
-    print_c "UNINSTALL ADDON" "$RED"
-    draw_sub
-    echo -e "${YELLOW}Enter the identifier name (e.g. mctools, recolor):${NC}"
-    read -p "> " idname
-    
-    if [ -z "$idname" ]; then error "Cancelled."; sleep 1; return; fi
-    
-    cd "$PANEL_DIR" || exit
-    info "Removing $idname..."
-    blueprint -remove "$idname"
-    success "Finished."
-    read -p "Press Enter..."
+    while true; do
+        header
+        print_c "UNINSTALL MANAGER" "$RED"
+        draw_sub
+        echo -e "${GREY}  Select the number to uninstall:${NC}"
+        echo ""
+        
+        # Static list mapping your store items to their identifiers
+        print_opt "1" "Recolor Theme"
+        print_opt "2" "Sidebar Theme"
+        print_opt "3" "Server Backgrounds"
+        print_opt "4" "Euphoria Theme"
+        print_opt "5" "MC Tools (Editor)"
+        print_opt "6" "MC Logs"
+        print_opt "7" "Player Listing"
+        print_opt "8" "Votifier Tester"
+        print_opt "9" "Database Editor"
+        print_opt "10" "Subdomains Manager"
+        
+        draw_sub
+        print_opt "M" "Manual Input (Type Identifier)" "$YELLOW"
+        print_opt "0" "Back" "$GREY"
+        draw_bar
+        echo -ne "${RED}  Remove Option: ${NC}"
+        read rm_opt
+        
+        # Map numbers to identifiers
+        case $rm_opt in
+            1) id="recolor" ;;
+            2) id="sidebar" ;;
+            3) id="serverbackgrounds" ;;
+            4) id="euphoria" ;;  # Assuming identifier matches generic naming
+            5) id="mctools" ;;
+            6) id="mclogs" ;;
+            7) id="playerlisting" ;;
+            8) id="votifiertester" ;;
+            9) id="dbedit" ;;
+            10) id="subdomains" ;;
+            "M"|"m") 
+                echo ""
+                echo -e "${YELLOW}Type the exact identifier name:${NC}"
+                read -p "> " id
+                ;;
+            0) return ;;
+            *) error "Invalid option"; sleep 1; continue ;;
+        esac
+
+        if [ -n "$id" ]; then
+            echo ""
+            info "Removing extension: $id..."
+            cd "$PANEL_DIR" || exit
+            
+            # Run the remove command
+            blueprint -remove "$id"
+            
+            echo ""
+            success "Removal process finished."
+            read -p "Press Enter to return..."
+            return
+        fi
+    done
 }
 
 uninstall_framework() {
@@ -171,7 +219,7 @@ menu_addons() {
         draw_sub
         print_opt "0" "Back" "$RED"
         draw_bar
-        echo -ne "${CYAN}  Select Addon: ${NC}"
+        echo -ne "${CYAN}  Select Addon [0-10]: ${NC}"
         read opt
 
         case $opt in
@@ -228,7 +276,6 @@ menu_blueprint() {
                 ;;
             2) menu_addons ;;
             3) 
-                # UPDATED: Now uses 'blueprint -upgrade'
                 cd "$PANEL_DIR" && blueprint -upgrade 
                 success "Update process finished."
                 read -p "Press Enter..." 
