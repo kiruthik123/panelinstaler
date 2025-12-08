@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION
-#   Connected to: github.com/kiruthik123/panelinstaler
+#   KS HOSTING BY KSGAMING - FINAL STABLE EDITION
+#   Repo: kiruthik123/panelinstaler
 # =========================================================
 
 # --- GITHUB CONFIGURATION ---
@@ -64,7 +64,7 @@ header() {
     draw_bar
 }
 
-# --- INSTALLER LOGIC ---
+# --- INSTALLER LOGIC (ADDONS) ---
 install_bp() {
     local name="$1"
     local file="$2"
@@ -88,7 +88,7 @@ install_bp() {
     info "Downloading $file..."
     rm -f "$file"
     
-    # Fast download with progress bar
+    # Fast download
     wget -q --show-progress "$url" -O "$file"
 
     if [ ! -f "$file" ]; then
@@ -201,7 +201,7 @@ menu_panel() {
         header
         print_c "PANEL MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Panel (Latest)"
+        print_opt "1" "Install Panel (Standard)"
         print_opt "2" "Create Admin User"
         print_opt "3" "Clear Cache (Fix 500 Error)"
         print_opt "4" "Reset Permissions"
@@ -211,8 +211,9 @@ menu_panel() {
         read opt
         case $opt in
             1) 
-                bash <(curl -s https://pterodactyl-installer.se/dependencies.sh)
-                bash <(curl -s https://pterodactyl-installer.se/panel.sh)
+                # FIXED: Uses official installer script directly
+                echo -e "${YELLOW}Starting Official Installer...${NC}"
+                bash <(curl -s https://pterodactyl-installer.se) --panel
                 read -p "Press Enter..."
                 ;;
             2) 
@@ -249,11 +250,9 @@ menu_wings() {
         read opt
         case $opt in
             1) 
-                curl -sSL https://get.docker.com/ | CHANNEL=stable bash
-                mkdir -p /etc/pterodactyl
-                curl -L -o /usr/local/bin/wings "https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
-                chmod u+x /usr/local/bin/wings
-                success "Installed."
+                # FIXED: Uses official installer script directly
+                echo -e "${YELLOW}Starting Official Wings Installer...${NC}"
+                bash <(curl -s https://pterodactyl-installer.se) --wings
                 read -p "Press Enter..."
                 ;;
             2) 
@@ -356,9 +355,9 @@ while true; do
         1) menu_panel ;;
         2) menu_wings ;;
         3) 
-            bash <(curl -s https://pterodactyl-installer.se/dependencies.sh)
-            bash <(curl -s https://pterodactyl-installer.se/panel.sh)
-            bash <(curl -s https://pterodactyl-installer.se/wings.sh)
+            # FIXED: Uses official installer for both
+            echo -e "${YELLOW}Starting Official Hybrid Installer...${NC}"
+            bash <(curl -s https://pterodactyl-installer.se) --panel --wings
             read -p "Press Enter..."
             ;;
         4) menu_blueprint ;;
