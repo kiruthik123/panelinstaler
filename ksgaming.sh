@@ -2,15 +2,20 @@
 
 # =========================================================
 #   KS HOSTING BY KSGAMING - SUPREME STORE EDITION
-#   Connected to: github.com/kiruthik123/panelinstaler
+#   Addons Repo: kiruthik123/panelinstaler
+#   Installer Repo: kiruthik123/installer
 # =========================================================
 
-# --- GITHUB CONFIGURATION ---
+# --- GITHUB CONFIGURATION (FOR ADDONS) ---
 GH_USER="kiruthik123"
 GH_REPO="panelinstaler"
 GH_BRANCH="main"
 
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
+
+# --- INSTALLER URL (FOR PANEL/WINGS) ---
+# This uses your specific installer repo
+INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
 
 # --- DIRECTORIES ---
 PANEL_DIR="/var/www/pterodactyl"
@@ -64,7 +69,7 @@ header() {
     draw_bar
 }
 
-# --- INSTALLER LOGIC ---
+# --- INSTALLER LOGIC (ADDONS) ---
 install_bp() {
     local name="$1"
     local file="$2"
@@ -109,7 +114,7 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
-# --- UNINSTALL LOGIC (UPDATED WITH NUMBERS) ---
+# --- UNINSTALL LOGIC ---
 uninstall_addon() {
     while true; do
         header
@@ -118,7 +123,6 @@ uninstall_addon() {
         echo -e "${GREY}  Select the number to uninstall:${NC}"
         echo ""
         
-        # Static list mapping your store items to their identifiers
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
@@ -137,12 +141,11 @@ uninstall_addon() {
         echo -ne "${RED}  Remove Option: ${NC}"
         read rm_opt
         
-        # Map numbers to identifiers
         case $rm_opt in
             1) id="recolor" ;;
             2) id="sidebar" ;;
             3) id="serverbackgrounds" ;;
-            4) id="euphoria" ;;  # Assuming identifier matches generic naming
+            4) id="euphoria" ;; 
             5) id="mctools" ;;
             6) id="mclogs" ;;
             7) id="playerlisting" ;;
@@ -162,10 +165,7 @@ uninstall_addon() {
             echo ""
             info "Removing extension: $id..."
             cd "$PANEL_DIR" || exit
-            
-            # Run the remove command
             blueprint -remove "$id"
-            
             echo ""
             success "Removal process finished."
             read -p "Press Enter to return..."
@@ -179,7 +179,7 @@ uninstall_framework() {
     print_c "UNINSTALL FRAMEWORK" "$RED"
     draw_sub
     echo -e "${YELLOW}WARNING: This removes the Blueprint tool.${NC}"
-    echo -e "${GREY}To fully revert visual changes, you may need to reinstall Panel files (Menu 1 -> 1).${NC}"
+    echo -e "${GREY}To fully revert changes, you may need to reinstall Panel files.${NC}"
     echo ""
     read -p "Type 'yes' to confirm: " c
     if [ "$c" == "yes" ]; then
@@ -293,7 +293,7 @@ menu_panel() {
         header
         print_c "PANEL MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Panel (Standard)"
+        print_opt "1" "Install Panel (Custom Installer)"
         print_opt "2" "Create Admin User"
         print_opt "3" "Clear Cache (Fix 500 Error)"
         print_opt "4" "Reset Permissions"
@@ -303,8 +303,9 @@ menu_panel() {
         read opt
         case $opt in
             1) 
-                echo -e "${YELLOW}Starting Official Installer...${NC}"
-                bash <(curl -s https://pterodactyl-installer.se) --panel
+                echo -e "${YELLOW}Running KS Installer...${NC}"
+                # Runs YOUR custom install script
+                bash <(curl -s $INSTALLER_URL)
                 read -p "Press Enter..."
                 ;;
             2) cd "$PANEL_DIR" && php artisan p:user:make; read -p "Press Enter..." ;;
@@ -320,7 +321,7 @@ menu_wings() {
         header
         print_c "WINGS MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Wings"
+        print_opt "1" "Install Wings (Custom Installer)"
         print_opt "2" "Auto-Configure (Paste Token)"
         print_opt "3" "Restart Wings"
         print_opt "0" "Back" "$RED"
@@ -329,8 +330,9 @@ menu_wings() {
         read opt
         case $opt in
             1) 
-                echo -e "${YELLOW}Starting Official Installer...${NC}"
-                bash <(curl -s https://pterodactyl-installer.se) --wings
+                echo -e "${YELLOW}Running KS Wings Installer...${NC}"
+                # Runs YOUR custom install script
+                bash <(curl -s $INSTALLER_URL)
                 read -p "Press Enter..."
                 ;;
             2) 
@@ -392,8 +394,9 @@ while true; do
         1) menu_panel ;;
         2) menu_wings ;;
         3) 
-            echo -e "${YELLOW}Starting Official Installer...${NC}"
-            bash <(curl -s https://pterodactyl-installer.se) --panel --wings
+            echo -e "${YELLOW}Running KS Hybrid Installer...${NC}"
+            # Runs YOUR custom install script
+            bash <(curl -s $INSTALLER_URL)
             read -p "Press Enter..."
             ;;
         4) menu_blueprint ;;
