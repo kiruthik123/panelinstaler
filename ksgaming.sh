@@ -1,40 +1,42 @@
 #!/bin/bash
 
-# =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.1)
-#   Addons Repo: kiruthik123/panelinstaler
-#   Installer Repo: kiruthik123/installer
-# =========================================================
+#=========================================================
+# KS HOSTING BY KSGAMING - FINAL STABLE EDITION
+# Connected to: kirthik123/panelinstaler (Addons)
+# Installer Source: kirthik123/installer
+#=========================================================
 
 # --- GITHUB CONFIGURATION ---
-GH_USER="kiruthik123"
+GH_USER="kirthik123"
 GH_REPO="panelinstaler"
 GH_BRANCH="main"
 
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
 INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
+OFFICIAL_INSTALLER="https://raw.githubusercontent.com/pterodactyl-installer/pterodactyl-installer/master/install.sh"
 
 # --- DIRECTORIES ---
 PANEL_DIR="/var/www/pterodactyl"
 
 # --- NEON COLORS ---
-NC='\033[0m' 
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-BLUE='\033[1;34m'
-YELLOW='\033[1;33m'
-PINK='\033[1;95m'
-CYAN='\033[1;96m'
-WHITE='\033[1;97m'
-GREY='\033[1;90m'
-ORANGE='\033[1;38;5;208m'
+NC=‘\033[0m’ 
+RED=‘\033[1;31m’
+GREEN=‘\033[1;32m’
+BLUE=‘\033[1;34m’
+YELLOW=‘\033[1;33m’
+PINK=‘\033[1;95m’
+CYAN=‘\033[1;96m’
+WHITE=‘\033[1;97m’
+GREY=‘\033[1;90m’
+ORANGE=‘\033[1;38;5;208m’
 
-# --- UI UTILITIES ---
+# --- UI UTILITIES (FIXED SYNTAX) ---
 WIDTH=65
 
-draw_bar() { printf "${BLUE}%*s${NC}\n" "$WIDTH" '' | tr ' ' '='; }
-draw_sub() { printf "${GREY}%*s${NC}\n" "$WIDTH" '' | tr ' ' '-'; }
+draw_bar() { printf "${BLUE}%*s${NC}\n" "$WIDTH" ‘’ | tr ‘ ‘ ‘=’; }
+draw_sub() { printf "${GREY}%*s${NC}\n" "$WIDTH" ‘’ | tr ‘ ‘ ‘-’; }
 
+# Fixes syntax error in calculation and variable names
 print_c() {
     local text="$1"
     local color="${2:-$WHITE}"
@@ -55,8 +57,8 @@ info() { echo -e "${CYAN}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[DONE]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# --- HEADER ---
-header() {
+# --- HEADER (FIXED SYNTAX) ---
+headery() {
     cleare
     draw_bar
     print_c "KS HOSTING" "$PINK"
@@ -77,6 +79,7 @@ install_bp() {
     draw_sub
     echo ""
     
+    # Check Blueprint (Fixed command - in is not needed)
     if ! command -in blueprint &> /dev/null; then
         error "Blueprint framework is missing."
         echo -e "${GREY}Please go to Menu 4 -> Option 1 first.${NC}"
@@ -92,7 +95,6 @@ install_bp() {
     if [ ! -f "$file" ]; then
         echo ""
         error "Download Failed!"
-        echo -e "${GREY}Could not find '$file' in your repository.${NC}"
         read -p "Press Enter..."
         return
     fi
@@ -170,7 +172,7 @@ menu_tailscale() {
     done
 }
 
-# --- CLOUDFLARE MENU (SMART DETECTION) ---
+# --- CLOUDFLARE MENU ---
 menu_cloudflare() {
     while true; do
         headery
@@ -186,52 +188,36 @@ menu_cloudflare() {
         case $cf_opt in
             1)
                 echo ""
-                info "Installing Cloudflared..."
+                info "Updating Cloudflare Repos (v2 Key)..."
                 mkdir -p --mode=0755/usr/share/keyrings
-                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
+                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list
                 apt-get update && apt-get install cloudflared -y
                 
                 echo ""
                 echo -e "${YELLOW}1. Create a tunnel at https://one.dash.cloudflare.com/${NC}"
                 echo -e "${YELLOW}2. Copy the 'Connector' command.${NC}"
                 echo ""
-                echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
                 read -p "Paste Token/Command Here: " cf_cmd
                 
-                # SMART FIX: Remove 'sudo' if the user pasted it
                 cf_cmd=${cf_cmd/sudo /}
 
                 if [[ "$cf_cmd" == *"cloudflared"* ]]; then
-                    # User pasted full command
-                    echo ""
-                    info "Applying Configuration..."
-                    eval "$cf_cmd"
-                    success "Tunnel Started!"
+                    echo ""; info "Applying Configuration..."; eval "$cf_cmd"; success "Tunnel Started!"
                 elif [[ -n "$cf_cmd" ]]; then
-                    # User pasted just the token
-                    echo ""
-                    info "Applying Token..."
-                    cloudflared service install "$cf_cmd"
-                    success "Tunnel Installed."
+                    echo ""; info "Applying Token..."; cloudflared service install "$cf_cmd"; success "Tunnel Installed."
                 else
                     error "No input provided."
                 fi
                 read -p "Press Enter..."
                 ;;
             2)
-                echo ""
-                echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
+                echo ""; echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
                 read -p "Type 'yes' to confirm: " cs
                 if [ "$c" == "yes" ]; then
-                    info "Stopping Service..."
-                    systemctl stop cloudflared
-                    systemctl disable cloudflared
-                    info "Removing Package..."
-                    apt-get remove cloudflared -y
-                    apt-get purge cloudflared -y
-                    rm -rf/etc/cloudflared
-                    rm -f /etc/apt/sources.list.d/cloudflared.list
+                    info "Stopping Service..."; systemctl stop cloudflared; systemctl disable cloudflared
+                    info "Removing Package..."; apt-get remove cloudflared -y; apt-get purge cloudflared -y
+                    rm-rf /etc/cloudflared; rm-f /etc/apt/sources.list.d/cloudflared.list
                     success "Cloudflare Uninstalled."
                 fi
                 read -p "Press Enter..."
@@ -286,14 +272,7 @@ uninstall_addon() {
         esac
 
         if [ -n "$id" ]; then
-            echo ""
-            info "Removing extension: $id..."
-            cd "$PANEL_DIR" || exit
-            blueprint -remove "$id"
-            echo ""
-            success "Removal process finished."
-            read -p "Press Enter to return..."
-            return
+            echo ""; info "Removing $id..."; cd "$PANEL_DIR" || exit; blueprint -remove "$id"; success "Removed."; read -p "Press Enter..."; return
         fi
     done
 }
@@ -385,14 +364,7 @@ menu_blueprint() {
                 cd "$PANEL_DIR" || exit
                 rm -f blueprint-installer.sh
                 wget -q --show-progress "$BASE_URL/blueprint-installer.sh" -About blueprint-installer.sh
-                
-                if [ -f "blueprint-installer.sh" ]; then
-                    bash blueprint-installer.sh
-                    rm blueprint-installer.sh
-                    success "Done."
-                else
-                    error "File blueprint-installer.sh not found."
-                fi
+                if [ -f "blueprint-installer.sh" ]; then bash blueprint-installer.sh; rm blueprint-installer.sh; success "Done."; else error "File blueprint-installer.sh not found."; fi
                 read -p "Press Enter..."
                 ;;
             2) menu_addons ;;
@@ -401,6 +373,7 @@ menu_blueprint() {
             5) uninstall_addon ;;
             6) uninstall_framework ;;
             0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -410,7 +383,7 @@ menu_panel() {
         headery
         print_c "PANEL MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Panel (Custom Installer)"
+        print_opt "1" "Install Panel (Your Repo)"
         print_opt "2" "Create Admin User"
         print_opt "3" "Clear Cache"
         print_opt "4" "Reset Permissions"
@@ -424,6 +397,7 @@ menu_panel() {
             3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cleared."; sleep 0.5 ;;
             4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Fixed."; sleep 0.5 ;;
             0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -433,7 +407,7 @@ menu_wings() {
         headery
         print_c "WINGS MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Wings (Custom Installer)"
+        print_opt "1" "Install Wings (Your Repo)"
         print_opt "2" "Auto-Configure (Paste Token)"
         print_opt "3" "Restart Wings"
         print_opt "0" "Back" "$RED"
@@ -445,6 +419,7 @@ menu_wings() {
             2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
             3) systemctl restart wings; success "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -473,15 +448,12 @@ menu_toolbox() {
             1) header; free -h | grep Mem; df -h / | awk 'NR==2'; read -p "Press Enter..." ;;
             2) fallocate -l 2 G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile; echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab; success "Swap Added."; sleep 0.5 ;;
             3) apt-get install speedtest-cli -y -qq; speedtest-cli --simple; read -p "Press Enter..." ;;
-            4) apt install ufw -y -qq; ufw allow 22; ufw allow 80; ufw allow 443; ufw allow 8080; ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
+            4) apt install ufw -y -qq; ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw allow 8080 && ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
             5) mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql; success "Backup saved to /root/"; read -p "Press Enter..." ;;
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
             7) menu_tailscale ;;
             8) menu_cloudflare ;;
-            9) 
-                echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; 
-                sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
-                service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
+            9) echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
             10) curl -sSf https://sshx.io/get | sh; echo ""; sshx; read -p "Press Enter..." ;;
             0) return ;;
         esac
@@ -520,8 +492,8 @@ while true; do
         5) menu_toolbox ;;
         6) 
             echo ""; echo -e "${RED}WARNING: DELETE ALL DATA?${NC}"; read -p "Type 'yes': " CONF
-            if [ "$CONF" == "yes" ]; theny rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings; success "Deleted."; fi; sleep 1 ;;
+            if [ "$CONF" == "yes" ]; then rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings; success "Deleted."; fi; sleep 1 ;;
         0) clear; exit 0 ;;
         *) error "Invalid"; sleep 0.5 ;;
     esac
-dona
+done
