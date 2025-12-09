@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v7.0)
+#   KS HOSTING BY KSGAMING - FINAL EDITION
 #   Addons Repo: kiruthik123/panelinstaler
 #   Installer Repo: kiruthik123/installer
 # =========================================================
@@ -11,9 +11,11 @@ GH_USER="kiruthik123"
 GH_REPO="panelinstaler"
 GH_BRANCH="main"
 
+# URL for downloading Blueprints (Addons)
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
-# FIXED: Using Official GitHub Raw Link to prevent 404 errors
-OFFICIAL_INSTALLER="https://raw.githubusercontent.com/pterodactyl-installer/pterodactyl-installer/master/install.sh"
+
+# URL for installing Panel/Wings (Your Custom Repo)
+INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
 
 # --- DIRECTORIES ---
 PANEL_DIR="/var/www/pterodactyl"
@@ -107,7 +109,7 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
-# --- TAILSCALE MENU (INSTALL & UNINSTALL) ---
+# --- TAILSCALE MENU ---
 menu_tailscale() {
     while true; do
         header
@@ -125,7 +127,6 @@ menu_tailscale() {
         case $ts_opt in
             1)
                 echo ""
-                # TUN Device Check
                 if [ ! -c /dev/net/tun ]; then
                    error "TUN Device missing! Ask your VPS host to enable TUN/TAP."
                    read -p "Press Enter..."
@@ -188,7 +189,7 @@ menu_cloudflare() {
         case $cf_opt in
             1)
                 echo ""
-                info "Updating Cloudflare Repos..."
+                info "Updating Cloudflare Repos (v2 Key)..."
                 mkdir -p --mode=0755 /usr/share/keyrings
                 curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
                 echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list
@@ -201,7 +202,7 @@ menu_cloudflare() {
                 echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
                 read -p "Paste Token/Command Here: " cf_cmd
                 
-                # Clean command
+                # Remove sudo if pasted
                 cf_cmd=${cf_cmd/sudo /}
 
                 if [[ "$cf_cmd" == *"cloudflared"* ]]; then
@@ -236,12 +237,14 @@ uninstall_addon() {
         header
         print_c "UNINSTALL MANAGER" "$RED"
         draw_sub
+        echo -e "${GREY}  Select the number to uninstall:${NC}"
+        echo ""
         
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
         print_opt "4" "Euphoria Theme"
-        print_opt "5" "MC Tools"
+        print_opt "5" "MC Tools (Editor)"
         print_opt "6" "MC Logs"
         print_opt "7" "Player Listing"
         print_opt "8" "Votifier Tester"
@@ -303,16 +306,21 @@ menu_addons() {
         header
         print_c "ADDON STORE" "$PINK"
         draw_sub
+        
+        print_c "-- THEMES --" "$ORANGE"
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
         print_opt "4" "Euphoria Theme" "$GREEN"
+        
+        print_c "-- UTILITIES --" "$ORANGE"
         print_opt "5" "MC Tools (Editor)"
         print_opt "6" "MC Logs (Live Console)"
         print_opt "7" "Player Listing"
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor" "$GREEN"
         print_opt "10" "Subdomains Manager" "$GREEN"
+        
         draw_sub
         print_opt "0" "Back" "$RED"
         draw_bar
@@ -377,7 +385,7 @@ menu_panel() {
         header
         print_c "PANEL MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Panel (Official)"
+        print_opt "1" "Install Panel (Your Repo)"
         print_opt "2" "Create Admin User"
         print_opt "3" "Clear Cache"
         print_opt "4" "Reset Permissions"
@@ -386,7 +394,7 @@ menu_panel() {
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) echo -e "${YELLOW}Starting Official Installer...${NC}"; bash <(curl -s $OFFICIAL_INSTALLER) --panel; read -p "Press Enter..." ;;
+            1) echo -e "${YELLOW}Running KS Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
             2) cd "$PANEL_DIR" &&php artisan p:user:make; read -p "Press Enter..." ;;
             3) cd "$PANEL_DIR" &&php artisan view:clear &&php artisan config:clear; succes "Cleared."; sleep 0.5 ;;
             4) color-R www-data:www-data "$PANEL_DIR"/*; succes "Fixed."; sleep 0.5 ;;
@@ -400,7 +408,7 @@ menu_wings() {
         header
         print_c "WINGS MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Wings (Official)"
+        print_opt "1" "Install Wings (Your Repo)"
         print_opt "2" "Auto-Configure (Paste Token)"
         print_opt "3" "Restart Wings"
         print_opt "0" "Back" "$RED"
@@ -408,7 +416,7 @@ menu_wings() {
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) echo -e "${YELLOW}Starting Official Installer...${NC}"; bash <(curl -s $OFFICIAL_INSTALLER) --wings; read -p "Press Enter..." ;;
+            1) echo -e "${YELLOW}Running KS Wings Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
             2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; succes "Started."; sleep 0.5 ;;
             3) systemctl restart wings; succes "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
@@ -476,8 +484,8 @@ while true; do
         1) panel_menu;;
         2) menu_wings;;
         3) 
-            echo -e "${YELLOW}Starting Official Hybrid Installer...${NC}"
-            bash <(curl -s $OFFICIAL_INSTALLER) --panel --wings
+            echo -e "${YELLOW}Starting KS Hybrid Installer...${NC}"
+            bash <(curl -s $INSTALLER_URL)
             read -p "Press Enter..."
             ;;
         4) menu_blueprint ;;
