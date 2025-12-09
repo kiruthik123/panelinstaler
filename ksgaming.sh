@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.2)
+#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.1)
 #   Addons Repo: kiruthik123/panelinstaler
 #   Installer Repo: kiruthik123/installer
 # =========================================================
@@ -170,7 +170,7 @@ menu_tailscale() {
     done
 }
 
-# --- CLOUDFLARE MENU (UPDATED REPO) ---
+# --- CLOUDFLARE MENU (SMART DETECTION) ---
 menu_cloudflare() {
     while true; do
         headery
@@ -186,19 +186,10 @@ menu_cloudflare() {
         case $cf_opt in
             1)
                 echo ""
-                info "Updating Cloudflare Repos (New GPG Key)..."
-                
-                # 1. Create Keyring Dir
+                info "Installing Cloudflared..."
                 mkdir -p --mode=0755/usr/share/keyrings
-                
-                # 2. Add New GPG Key (v2)
-                curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
-                
-                # 3. Add Repo to Sources
-                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list
-                
-                # 4. Install
-                info "Installing Package..."
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
                 apt-get update && apt-get install cloudflared -y
                 
                 echo ""
@@ -208,15 +199,17 @@ menu_cloudflare() {
                 echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
                 read -p "Paste Token/Command Here: " cf_cmd
                 
-                # REMOVE SUDO IF PASTED
+                # SMART FIX: Remove 'sudo' if the user pasted it
                 cf_cmd=${cf_cmd/sudo /}
 
                 if [[ "$cf_cmd" == *"cloudflared"* ]]; then
+                    # User pasted full command
                     echo ""
                     info "Applying Configuration..."
                     eval "$cf_cmd"
                     success "Tunnel Started!"
                 elif [[ -n "$cf_cmd" ]]; then
+                    # User pasted just the token
                     echo ""
                     info "Applying Token..."
                     cloudflared service install "$cf_cmd"
@@ -239,7 +232,6 @@ menu_cloudflare() {
                     apt-get purge cloudflared -y
                     rm -rf/etc/cloudflared
                     rm -f /etc/apt/sources.list.d/cloudflared.list
-                    rm -f /usr/share/keyrings/cloudflare-public-v2.gpg
                     success "Cloudflare Uninstalled."
                 fi
                 read -p "Press Enter..."
