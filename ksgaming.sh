@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION
+#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.1)
 #   Addons Repo: kiruthik123/panelinstaler
 #   Installer Repo: kiruthik123/installer
 # =========================================================
@@ -170,7 +170,7 @@ menu_tailscale() {
     done
 }
 
-# --- CLOUDFLARE MENU (NEW) ---
+# --- CLOUDFLARE MENU (SMART DETECTION) ---
 menu_cloudflare() {
     while true; do
         header
@@ -196,16 +196,26 @@ menu_cloudflare() {
                 echo -e "${YELLOW}1. Create a tunnel at https://one.dash.cloudflare.com/${NC}"
                 echo -e "${YELLOW}2. Copy the 'Connector' command.${NC}"
                 echo ""
+                echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
                 read -p "Paste Token/Command Here: " cf_cmd
                 
+                # SMART FIX: Remove 'sudo' if the user pasted it
+                cf_cmd=${cf_cmd/sudo /}
+
                 if [[ "$cf_cmd" == *"cloudflared"* ]]; then
+                    # User pasted full command
+                    echo ""
+                    info "Applying Configuration..."
                     eval "$cf_cmd"
                     success "Tunnel Started!"
                 elif [[ -n "$cf_cmd" ]]; then
+                    # User pasted just the token
+                    echo ""
+                    info "Applying Token..."
                     cloudflared service install "$cf_cmd"
                     success "Tunnel Installed."
                 else
-                    error "No token provided."
+                    error "No input provided."
                 fi
                 read -p "Press Enter..."
                 ;;
@@ -253,7 +263,7 @@ uninstall_addon() {
         print_opt "10" "Subdomains Manager"
         
         draw_sub
-        print_opt "M" "Manual Input" "$YELLOW"
+        print_opt "M" "Manual Input (Type Identifier)" "$YELLOW"
         print_opt "0" "Back" "$GREY"
         draw_bar
         echo -ne "${RED}  Remove Option: ${NC}"
