@@ -106,14 +106,14 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
-# --- TAILSCALE MENU (FIXED) ---
+# --- TAILSCALE MENU ---
 menu_tailscale() {
     while true; do
         header
         print_c "TAILSCALE VPN MANAGER" "$ORANGE"
         draw_sub
         print_opt "1" "Install Tailscale"
-        print_opt "2" "Generate Login Link (Auth)"
+        print_opt "2" "Generate Login Link"
         print_opt "3" "Check Status / IP"
         print_opt "4" "Uninstall Tailscale"
         print_opt "0" "Back" "$RED"
@@ -124,23 +124,14 @@ menu_tailscale() {
         case $ts_opt in
             1)
                 echo ""
-                # Check for TUN device (Common VPS Error)
                 if [ ! -c /dev/net/tun ]; then
-                   error "TUN Device missing!"
-                   echo "Your VPS provider has disabled TUN/TAP."
-                   echo "Please ask your host to enable 'TUN/TAP' in your server settings."
-                   read -p "Press Enter to try anyway..."
+                   error "TUN Device missing! Ask your VPS host to enable TUN/TAP."
+                   read -p "Press Enter..."
                 fi
-
                 info "Installing Tailscale..."
                 curl -fsSL https://tailscale.com/install.sh | sh
                 echo ""
-                if command -v tailscale &> /dev/null; then
-                    success "Tailscale Installed."
-                    echo -e "${YELLOW}>> NOW SELECT OPTION 2 TO LOGIN <<${NC}"
-                else
-                    error "Installation Failed."
-                fi
+                success "Tailscale Installed."
                 read -p "Press Enter..."
                 ;;
             2)
@@ -149,43 +140,89 @@ menu_tailscale() {
                 draw_sub
                 echo ""
                 if ! command -v tailscale &> /dev/null; then
-                    error "Tailscale not installed (Use Option 1)."
+                    error "Tailscale not installed."
                 else
                     echo -e "${YELLOW}Running auth command...${NC}"
-                    echo -e "${WHITE}If a link appears below, COPY and PASTE it into your browser.${NC}"
-                    echo ""
-                    # Force reset to ensure link generation
                     tailscale up --reset
                     echo ""
-                    success "Command Finished."
+                    success "Done."
                 fi
                 read -p "Press Enter..."
                 ;;
             3)
-                echo ""
-                if command -v tailscale &> /dev/null; then
-                    tailscale status
-                    echo ""
-                    tailscale ip -4
-                else
-                    error "Tailscale not installed."
-                fi
-                read -p "Press Enter..."
+                echo ""; tailscale status; echo ""; tailscale ip -4; read -p "Press Enter..."
                 ;;
             4)
-                echo ""
-                echo -e "${RED}WARNING: Removing Tailscale VPN.${NC}"
+                echo ""; echo -e "${RED}WARNING: Removing Tailscale VPN.${NC}"
                 read -p "Type 'yes' to confirm: " c
                 if [ "$c" == "yes" ]; then
                     info "Removing..."
                     systemctl stop tailscaled 2>/dev/null
-                    if [ -f /etc/debian_version ]; then
-                        apt-get remove tailscale -y
-                    elif [ -f /etc/redhat-release ]; then
-                        yum remove tailscale -y
-                    fi
+                    if [ -f /etc/debian_version ]; then apt-get remove tailscale -y; elif [ -f /etc/redhat-release ]; then yum remove tailscale -y; fi
                     rm -rf /var/lib/tailscale /etc/tailscale
                     success "Uninstalled."
+                fi
+                read -p "Press Enter..."
+                ;;
+            0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- CLOUDFLARE MENU (NEW) ---
+menu_cloudflare() {
+    while true; do
+        header
+        print_c "CLOUDFLARE TUNNEL MANAGER" "$ORANGE"
+        draw_sub
+        print_opt "1" "Install & Setup Tunnel"
+        print_opt "2" "Uninstall Cloudflared"
+        print_opt "0" "Back" "$RED"
+        draw_bar
+        echo -ne "${CYAN}  Select: ${NC}"
+        read cf_opt
+
+        case $cf_opt in
+            1)
+                echo ""
+                info "Installing Cloudflared..."
+                mkdir -p --mode=0755 /usr/share/keyrings
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
+                apt-get update && apt-get install cloudflared -y
+                
+                echo ""
+                echo -e "${YELLOW}1. Create a tunnel at https://one.dash.cloudflare.com/${NC}"
+                echo -e "${YELLOW}2. Copy the 'Connector' command.${NC}"
+                echo ""
+                read -p "Paste Token/Command Here: " cf_cmd
+                
+                if [[ "$cf_cmd" == *"cloudflared"* ]]; then
+                    eval "$cf_cmd"
+                    success "Tunnel Started!"
+                elif [[ -n "$cf_cmd" ]]; then
+                    cloudflared service install "$cf_cmd"
+                    success "Tunnel Installed."
+                else
+                    error "No token provided."
+                fi
+                read -p "Press Enter..."
+                ;;
+            2)
+                echo ""
+                echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
+                read -p "Type 'yes' to confirm: " c
+                if [ "$c" == "yes" ]; then
+                    info "Stopping Service..."
+                    systemctl stop cloudflared
+                    systemctl disable cloudflared
+                    info "Removing Package..."
+                    apt-get remove cloudflared -y
+                    apt-get purge cloudflared -y
+                    rm -rf /etc/cloudflared
+                    rm -f /etc/apt/sources.list.d/cloudflared.list
+                    success "Cloudflare Uninstalled."
                 fi
                 read -p "Press Enter..."
                 ;;
@@ -201,6 +238,9 @@ uninstall_addon() {
         header
         print_c "UNINSTALL MANAGER" "$RED"
         draw_sub
+        echo -e "${GREY}  Select the number to uninstall:${NC}"
+        echo ""
+        
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
@@ -211,8 +251,9 @@ uninstall_addon() {
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor"
         print_opt "10" "Subdomains Manager"
+        
         draw_sub
-        print_opt "M" "Manual Input (Type Name)" "$YELLOW"
+        print_opt "M" "Manual Input" "$YELLOW"
         print_opt "0" "Back" "$GREY"
         draw_bar
         echo -ne "${RED}  Remove Option: ${NC}"
@@ -411,7 +452,7 @@ menu_toolbox() {
         print_opt "6" "Install SSL (Certbot)"
         draw_sub
         print_opt "7" "Tailscale Manager" "$ORANGE"
-        print_opt "8" "Setup Cloudflare Tunnel" "$ORANGE"
+        print_opt "8" "Cloudflare Manager" "$ORANGE"
         print_opt "9" "Enable Root Access" "$GREEN"
         print_opt "10" "SSHX (Web Terminal)" "$GREEN"
         print_opt "0" "Back" "$RED"
@@ -426,12 +467,7 @@ menu_toolbox() {
             5) mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql; success "Backup saved to /root/"; read -p "Press Enter..." ;;
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
             7) menu_tailscale ;;
-            8) 
-                mkdir -p --mode=0755 /usr/share/keyrings
-                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
-                apt-get update && apt-get install cloudflared -y
-                echo ""; read -p "Paste Token: " t; cloudflared service install $t; success "Done."; sleep 1 ;;
+            8) menu_cloudflare ;;
             9) 
                 echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; 
                 sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
