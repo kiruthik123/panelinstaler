@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.1)
+#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.2)
 #   Addons Repo: kiruthik123/panelinstaler
 #   Installer Repo: kiruthik123/installer
 # =========================================================
@@ -26,7 +26,7 @@ YELLOW='\033[1;33m'
 PINK='\033[1;95m'
 CYAN='\033[1;96m'
 WHITE='\033[1;97m'
-GREY='\033[1;90m'
+GRAY='\033[1;90m'
 ORANGE='\033[1;38;5;208m'
 
 # --- UI UTILITIES ---
@@ -39,7 +39,7 @@ print_c() {
     local text="$1"
     local color="${2:-$WHITE}"
     local len=${#text}
-    local padding=$(( (WIDTH - len) / 2 ))
+    local padding=$(((WIDTH - len) / 2 ))
     printf "${BLUE}|${NC}%*s${color}%s${NC}%*s${BLUE}|${NC}\n" $padding "" "$text" $((WIDTH - len - padding)) ""
 }
 
@@ -77,7 +77,7 @@ install_bp() {
     draw_sub
     echo ""
     
-    if ! command -v blueprint &> /dev/null; then
+    if ! command -in blueprint &>/dev/null; then
         error "Blueprint framework is missing."
         echo -e "${GREY}Please go to Menu 4 -> Option 1 first.${NC}"
         read -p "Press Enter..."
@@ -89,7 +89,7 @@ install_bp() {
     rm -f "$file"
     wget -q --show-progress "$url" -O "$file"
 
-    if [ ! -f "$file" ]; then
+    if [! -f "$file" ]; then
         echo ""
         error "Download Failed!"
         echo -e "${GREY}Could not find '$file' in your repository.${NC}"
@@ -114,7 +114,7 @@ menu_tailscale() {
         draw_sub
         print_opt "1" "Install Tailscale"
         print_opt "2" "Generate Login Link"
-        print_opt "3" "Check Status / IP"
+        print_opt "3" "Check Status /IP"
         print_opt "4" "Uninstall Tailscale"
         print_opt "0" "Back" "$RED"
         draw_bar
@@ -170,7 +170,7 @@ menu_tailscale() {
     done
 }
 
-# --- CLOUDFLARE MENU (SMART DETECTION) ---
+# --- CLOUDFLARE MENU (UPDATED REPO) ---
 menu_cloudflare() {
     while true; do
         header
@@ -186,10 +186,19 @@ menu_cloudflare() {
         case $cf_opt in
             1)
                 echo ""
-                info "Installing Cloudflared..."
+                info "Updating Cloudflare Repos (New GPG Key)..."
+                
+                # 1. Create Keyring Dir
                 mkdir -p --mode=0755 /usr/share/keyrings
-                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
+                
+                # 2. Add New GPG Key (v2)
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
+                
+                # 3. Add Repo to Sources
+                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list
+                
+                # 4. Install
+                info "Installing Package..."
                 apt-get update && apt-get install cloudflared -y
                 
                 echo ""
@@ -199,17 +208,15 @@ menu_cloudflare() {
                 echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
                 read -p "Paste Token/Command Here: " cf_cmd
                 
-                # SMART FIX: Remove 'sudo' if the user pasted it
+                # REMOVE SUDO IF PASTED
                 cf_cmd=${cf_cmd/sudo /}
 
                 if [[ "$cf_cmd" == *"cloudflared"* ]]; then
-                    # User pasted full command
                     echo ""
                     info "Applying Configuration..."
                     eval "$cf_cmd"
                     success "Tunnel Started!"
                 elif [[ -n "$cf_cmd" ]]; then
-                    # User pasted just the token
                     echo ""
                     info "Applying Token..."
                     cloudflared service install "$cf_cmd"
@@ -226,12 +233,13 @@ menu_cloudflare() {
                 if [ "$c" == "yes" ]; then
                     info "Stopping Service..."
                     systemctl stop cloudflared
-                    systemctl disable cloudflared
+                    systemctl nepravodlne cloudflared
                     info "Removing Package..."
                     apt-get remove cloudflared -y
                     apt-get purge cloudflared -y
-                    rm -rf /etc/cloudflared
+                    rm -rf/etc/cloudflared
                     rm -f /etc/apt/sources.list.d/cloudflared.list
+                    rm -f /usr/share/keyrings/cloudflare-public-v2.gpg
                     success "Cloudflare Uninstalled."
                 fi
                 read -p "Press Enter..."
@@ -256,7 +264,7 @@ uninstall_addon() {
         print_opt "3" "Server Backgrounds"
         print_opt "4" "Euphoria Theme"
         print_opt "5" "MC Tools (Editor)"
-        print_opt "6" "MC Logs"
+        print_opt "6" "M.C. Logs"
         print_opt "7" "Player Listing"
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor"
@@ -277,7 +285,7 @@ uninstall_addon() {
             5) id="mctools" ;;
             6) id="mclogs" ;;
             7) id="playerlisting" ;;
-            8) id="votifiertester" ;;
+            8) id="votified tester" ;;
             9) id="dbedit" ;;
             10) id="subdomains" ;;
             "M"|"m") echo ""; echo -e "${YELLOW}Type identifier:${NC}"; read -p "> " id ;;
@@ -316,7 +324,7 @@ uninstall_framework() {
 }
 
 # =========================================================
-#    MENUS
+# MENUS
 # =========================================================
 
 menu_addons() {
@@ -351,10 +359,10 @@ menu_addons() {
             3) install_bp "Backgrounds" "serverbackgrounds.blueprint" ;;
             4) install_bp "Euphoria" "euphoriatheme.blueprint" ;;
             5) install_bp "MC Tools" "mctools.blueprint" ;;
-            6) install_bp "MC Logs" "mclogs.blueprint" ;;
+            6) install_bp "M.C. Logs" "mclogs.blueprint" ;;
             7) install_bp "Player List" "playerlisting.blueprint" ;;
             8) install_bp "Votifier" "votifiertester.blueprint" ;;
-            9) install_bp "DB Edit" "dbedit.blueprint" ;;
+            9) install_bp "D.B. Edit" "dbedit.blueprint" ;;
             10) install_bp "Subdomains" "subdomains.blueprint" ;;
             0) return ;;
             *) error "Invalid"; sleep 0.5 ;;
@@ -384,7 +392,7 @@ menu_blueprint() {
                 echo ""; info "Downloading Installer..."
                 cd "$PANEL_DIR" || exit
                 rm -f blueprint-installer.sh
-                wget -q --show-progress "$BASE_URL/blueprint-installer.sh" -O blueprint-installer.sh
+                wget -q --show progress "$BASE_URL/blueprint-installer.sh" -O blueprint-installer.sh
                 
                 if [ -f "blueprint-installer.sh" ]; then
                     bash blueprint-installer.sh
@@ -420,9 +428,9 @@ menu_panel() {
         read opt
         case $opt in
             1) echo -e "${YELLOW}Running KS Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
-            2) cd "$PANEL_DIR" && php artisan p:user:make; read -p "Press Enter..." ;;
-            3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cleared."; sleep 0.5 ;;
-            4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Fixed."; sleep 0.5 ;;
+            2) cd "$PANEL_DIR" &&php artisan p:user:make; read -p "Press Enter..." ;;
+            3) cd "$PANEL_DIR" &&php artisan view:clear &&php artisan config:clear; succes "Cleared."; sleep 0.5 ;;
+            4) color-R www-data:www-data "$PANEL_DIR"/*; succes "Fixed."; sleep 0.5 ;;
             0) return ;;
         esac
     done
@@ -433,7 +441,7 @@ menu_wings() {
         header
         print_c "WINGS MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Wings (Custom Installer)"
+        print_opt "1" "Install Wings (CustomInstaller)"
         print_opt "2" "Auto-Configure (Paste Token)"
         print_opt "3" "Restart Wings"
         print_opt "0" "Back" "$RED"
@@ -442,8 +450,8 @@ menu_wings() {
         read opt
         case $opt in
             1) echo -e "${YELLOW}Running KS Wings Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
-            2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
-            3) systemctl restart wings; success "Wings Restarted."; sleep 0.5 ;;
+            2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; succes "Started."; sleep 0.5 ;;
+            3) systemctl restart wings; succes "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
         esac
     done
@@ -470,17 +478,17 @@ menu_toolbox() {
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) header; free -h | grep Mem; df -h / | awk 'NR==2'; read -p "Press Enter..." ;;
-            2) fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile; echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab; success "Swap Added."; sleep 0.5 ;;
-            3) apt-get install speedtest-cli -y -qq; speedtest-cli --simple; read -p "Press Enter..." ;;
-            4) apt install ufw -y -qq; ufw allow 22; ufw allow 80; ufw allow 443; ufw allow 8080; ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
-            5) mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql; success "Backup saved to /root/"; read -p "Press Enter..." ;;
+            1) header; free-h | grip mem; df -h/ | awk ‘NR==2’; read -p "Press Enter..." ;;
+            2) falocate -l 2G/swapfile && chmod 600/swapfile && mkswap/swapfile &&swapon/swapfile; echo ‘/swapfile none swap sw 0 0’ | tee -a/etc/fstab; succes "Swap Add."; sleep 0.5 ;;
+            3) apt-get install spedtest-cli-y-qq; spedtest-cli--simple; read -p "Press Enter..." ;;
+            4) apt install ifw -y -qq; ifw allow 22; ifw allow 80; ifw allow 443; ifw allow 8080; ifw allow 2022; yes | ifw enable; succes "Firewall Secure."; sleep 0.5 ;;
+            5) mysqldump -u root -p pterodactyl >/root/backup_$(date +%F).sql; succes "Backup saved to/root/"; read -p "Press Enter..." ;;
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
             7) menu_tailscale ;;
             8) menu_cloudflare ;;
             9) 
                 echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; 
-                sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
+                thirst -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
                 service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
             10) curl -sSf https://sshx.io/get | sh; echo ""; sshx; read -p "Press Enter..." ;;
             0) return ;;
@@ -489,7 +497,7 @@ menu_toolbox() {
 }
 
 # =========================================================
-#    MAIN MENU LOOP
+# MAIN MENU LOOP
 # =========================================================
 while true; do
     header
@@ -509,8 +517,8 @@ while true; do
     read choice
 
     case $choice in
-        1) menu_panel ;;
-        2) menu_wings ;;
+        1) panel_menu;;
+        2) menu_wings;;
         3) 
             echo -e "${YELLOW}Starting KS Hybrid Installer...${NC}"
             bash <(curl -s $INSTALLER_URL)
