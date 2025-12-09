@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.2)
+#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v7.0)
 #   Addons Repo: kiruthik123/panelinstaler
 #   Installer Repo: kiruthik123/installer
 # =========================================================
@@ -12,7 +12,8 @@ GH_REPO="panelinstaler"
 GH_BRANCH="main"
 
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
-INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
+# FIXED: Using Official GitHub Raw Link to prevent 404 errors
+OFFICIAL_INSTALLER="https://raw.githubusercontent.com/pterodactyl-installer/pterodactyl-installer/master/install.sh"
 
 # --- DIRECTORIES ---
 PANEL_DIR="/var/www/pterodactyl"
@@ -106,7 +107,7 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
-# --- TAILSCALE MENU ---
+# --- TAILSCALE MENU (INSTALL & UNINSTALL) ---
 menu_tailscale() {
     while true; do
         header
@@ -114,7 +115,7 @@ menu_tailscale() {
         draw_sub
         print_opt "1" "Install Tailscale"
         print_opt "2" "Generate Login Link"
-        print_opt "3" "Check Status /IP"
+        print_opt "3" "Check Status / IP"
         print_opt "4" "Uninstall Tailscale"
         print_opt "0" "Back" "$RED"
         draw_bar
@@ -124,6 +125,7 @@ menu_tailscale() {
         case $ts_opt in
             1)
                 echo ""
+                # TUN Device Check
                 if [ ! -c /dev/net/tun ]; then
                    error "TUN Device missing! Ask your VPS host to enable TUN/TAP."
                    read -p "Press Enter..."
@@ -170,7 +172,7 @@ menu_tailscale() {
     done
 }
 
-# --- CLOUDFLARE MENU (UPDATED REPO) ---
+# --- CLOUDFLARE MENU ---
 menu_cloudflare() {
     while true; do
         header
@@ -186,19 +188,10 @@ menu_cloudflare() {
         case $cf_opt in
             1)
                 echo ""
-                info "Updating Cloudflare Repos (New GPG Key)..."
-                
-                # 1. Create Keyring Dir
+                info "Updating Cloudflare Repos..."
                 mkdir -p --mode=0755 /usr/share/keyrings
-                
-                # 2. Add New GPG Key (v2)
                 curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
-                
-                # 3. Add Repo to Sources
                 echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list
-                
-                # 4. Install
-                info "Installing Package..."
                 apt-get update && apt-get install cloudflared -y
                 
                 echo ""
@@ -208,38 +201,25 @@ menu_cloudflare() {
                 echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
                 read -p "Paste Token/Command Here: " cf_cmd
                 
-                # REMOVE SUDO IF PASTED
+                # Clean command
                 cf_cmd=${cf_cmd/sudo /}
 
                 if [[ "$cf_cmd" == *"cloudflared"* ]]; then
-                    echo ""
-                    info "Applying Configuration..."
-                    eval "$cf_cmd"
-                    success "Tunnel Started!"
+                    echo ""; info "Applying Configuration..."; eval "$cf_cmd"; succes "Tunnel Started!"
                 elif [[ -n "$cf_cmd" ]]; then
-                    echo ""
-                    info "Applying Token..."
-                    cloudflared service install "$cf_cmd"
-                    success "Tunnel Installed."
+                    echo ""; info "Applying Token..."; cloudflared service install "$cf_cmd"; succes "Tunnel Installed."
                 else
                     error "No input provided."
                 fi
                 read -p "Press Enter..."
                 ;;
             2)
-                echo ""
-                echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
+                echo ""; echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
                 read -p "Type 'yes' to confirm: " c
                 if [ "$c" == "yes" ]; then
-                    info "Stopping Service..."
-                    systemctl stop cloudflared
-                    systemctl nepravodlne cloudflared
-                    info "Removing Package..."
-                    apt-get remove cloudflared -y
-                    apt-get purge cloudflared -y
-                    rm -rf/etc/cloudflared
-                    rm -f /etc/apt/sources.list.d/cloudflared.list
-                    rm -f /usr/share/keyrings/cloudflare-public-v2.gpg
+                    info "Stopping Service..."; systemctl stop cloudflared; systemctl disable cloudflared
+                    info "Removing Package..."; apt-get remove cloudflared -y; apt-get purge cloudflared -y
+                    rm -rf /etc/cloudflared; rm -f /etc/apt/sources.list.d/cloudflared.list
                     success "Cloudflare Uninstalled."
                 fi
                 read -p "Press Enter..."
@@ -256,22 +236,20 @@ uninstall_addon() {
         header
         print_c "UNINSTALL MANAGER" "$RED"
         draw_sub
-        echo -e "${GREY}  Select the number to uninstall:${NC}"
-        echo ""
         
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
         print_opt "4" "Euphoria Theme"
-        print_opt "5" "MC Tools (Editor)"
-        print_opt "6" "M.C. Logs"
+        print_opt "5" "MC Tools"
+        print_opt "6" "MC Logs"
         print_opt "7" "Player Listing"
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor"
         print_opt "10" "Subdomains Manager"
         
         draw_sub
-        print_opt "M" "Manual Input (Type Identifier)" "$YELLOW"
+        print_opt "M" "Manual Input" "$YELLOW"
         print_opt "0" "Back" "$GREY"
         draw_bar
         echo -ne "${RED}  Remove Option: ${NC}"
@@ -285,7 +263,7 @@ uninstall_addon() {
             5) id="mctools" ;;
             6) id="mclogs" ;;
             7) id="playerlisting" ;;
-            8) id="votified tester" ;;
+            8) id="votifiertester" ;;
             9) id="dbedit" ;;
             10) id="subdomains" ;;
             "M"|"m") echo ""; echo -e "${YELLOW}Type identifier:${NC}"; read -p "> " id ;;
@@ -294,14 +272,7 @@ uninstall_addon() {
         esac
 
         if [ -n "$id" ]; then
-            echo ""
-            info "Removing extension: $id..."
-            cd "$PANEL_DIR" || exit
-            blueprint -remove "$id"
-            echo ""
-            success "Removal process finished."
-            read -p "Press Enter to return..."
-            return
+            echo ""; info "Removing $id..."; cd "$PANEL_DIR" || exit; blueprint -remove "$id"; succes "Removed."; read -p "Press Enter..."; return
         fi
     done
 }
@@ -324,7 +295,7 @@ uninstall_framework() {
 }
 
 # =========================================================
-# MENUS
+#    MENUS
 # =========================================================
 
 menu_addons() {
@@ -332,21 +303,16 @@ menu_addons() {
         header
         print_c "ADDON STORE" "$PINK"
         draw_sub
-        
-        print_c "-- THEMES --" "$ORANGE"
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
         print_opt "4" "Euphoria Theme" "$GREEN"
-        
-        print_c "-- UTILITIES --" "$ORANGE"
         print_opt "5" "MC Tools (Editor)"
         print_opt "6" "MC Logs (Live Console)"
         print_opt "7" "Player Listing"
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor" "$GREEN"
         print_opt "10" "Subdomains Manager" "$GREEN"
-        
         draw_sub
         print_opt "0" "Back" "$RED"
         draw_bar
@@ -359,10 +325,10 @@ menu_addons() {
             3) install_bp "Backgrounds" "serverbackgrounds.blueprint" ;;
             4) install_bp "Euphoria" "euphoriatheme.blueprint" ;;
             5) install_bp "MC Tools" "mctools.blueprint" ;;
-            6) install_bp "M.C. Logs" "mclogs.blueprint" ;;
+            6) install_bp "MC Logs" "mclogs.blueprint" ;;
             7) install_bp "Player List" "playerlisting.blueprint" ;;
             8) install_bp "Votifier" "votifiertester.blueprint" ;;
-            9) install_bp "D.B. Edit" "dbedit.blueprint" ;;
+            9) install_bp "DB Edit" "dbedit.blueprint" ;;
             10) install_bp "Subdomains" "subdomains.blueprint" ;;
             0) return ;;
             *) error "Invalid"; sleep 0.5 ;;
@@ -393,14 +359,7 @@ menu_blueprint() {
                 cd "$PANEL_DIR" || exit
                 rm -f blueprint-installer.sh
                 wget -q --show progress "$BASE_URL/blueprint-installer.sh" -O blueprint-installer.sh
-                
-                if [ -f "blueprint-installer.sh" ]; then
-                    bash blueprint-installer.sh
-                    rm blueprint-installer.sh
-                    success "Done."
-                else
-                    error "File blueprint-installer.sh not found."
-                fi
+                if [ -f "blueprint-installer.sh" ]; then bash blueprint-installer.sh; rm blueprint-installer.sh; success "Done."; else error "File not found."; fi
                 read -p "Press Enter..."
                 ;;
             2) menu_addons ;;
@@ -418,7 +377,7 @@ menu_panel() {
         header
         print_c "PANEL MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Panel (Custom Installer)"
+        print_opt "1" "Install Panel (Official)"
         print_opt "2" "Create Admin User"
         print_opt "3" "Clear Cache"
         print_opt "4" "Reset Permissions"
@@ -427,7 +386,7 @@ menu_panel() {
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) echo -e "${YELLOW}Running KS Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
+            1) echo -e "${YELLOW}Starting Official Installer...${NC}"; bash <(curl -s $OFFICIAL_INSTALLER) --panel; read -p "Press Enter..." ;;
             2) cd "$PANEL_DIR" &&php artisan p:user:make; read -p "Press Enter..." ;;
             3) cd "$PANEL_DIR" &&php artisan view:clear &&php artisan config:clear; succes "Cleared."; sleep 0.5 ;;
             4) color-R www-data:www-data "$PANEL_DIR"/*; succes "Fixed."; sleep 0.5 ;;
@@ -441,7 +400,7 @@ menu_wings() {
         header
         print_c "WINGS MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Wings (CustomInstaller)"
+        print_opt "1" "Install Wings (Official)"
         print_opt "2" "Auto-Configure (Paste Token)"
         print_opt "3" "Restart Wings"
         print_opt "0" "Back" "$RED"
@@ -449,7 +408,7 @@ menu_wings() {
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) echo -e "${YELLOW}Running KS Wings Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
+            1) echo -e "${YELLOW}Starting Official Installer...${NC}"; bash <(curl -s $OFFICIAL_INSTALLER) --wings; read -p "Press Enter..." ;;
             2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; succes "Started."; sleep 0.5 ;;
             3) systemctl restart wings; succes "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
@@ -486,10 +445,7 @@ menu_toolbox() {
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
             7) menu_tailscale ;;
             8) menu_cloudflare ;;
-            9) 
-                echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; 
-                thirst -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
-                service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
+            9) echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
             10) curl -sSf https://sshx.io/get | sh; echo ""; sshx; read -p "Press Enter..." ;;
             0) return ;;
         esac
@@ -520,8 +476,8 @@ while true; do
         1) panel_menu;;
         2) menu_wings;;
         3) 
-            echo -e "${YELLOW}Starting KS Hybrid Installer...${NC}"
-            bash <(curl -s $INSTALLER_URL)
+            echo -e "${YELLOW}Starting Official Hybrid Installer...${NC}"
+            bash <(curl -s $OFFICIAL_INSTALLER) --panel --wings
             read -p "Press Enter..."
             ;;
         4) menu_blueprint ;;
