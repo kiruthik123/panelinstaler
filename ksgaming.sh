@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME NETWORK EDITION
+#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION
 #   Addons Repo: kiruthik123/panelinstaler
 #   Installer Repo: kiruthik123/installer
 # =========================================================
@@ -60,13 +60,13 @@ header() {
     clear
     draw_bar
     print_c "KS HOSTING" "$PINK"
-    print_c "ULTIMATE MANAGER" "$CYAN"
+    print_c "Repo: $GH_USER/$GH_REPO" "$CYAN"
     draw_bar
     print_c "User: $USER | IP: $(hostname -I | awk '{print $1}')" "$GREY"
     draw_bar
 }
 
-# --- INSTALLER LOGIC ---
+# --- INSTALLER LOGIC (ADDONS) ---
 install_bp() {
     local name="$1"
     local file="$2"
@@ -92,7 +92,7 @@ install_bp() {
     if [ ! -f "$file" ]; then
         echo ""
         error "Download Failed!"
-        echo -e "${GREY}File not found in repo: $file${NC}"
+        echo -e "${GREY}Could not find '$file' in your repository.${NC}"
         read -p "Press Enter..."
         return
     fi
@@ -101,52 +101,72 @@ install_bp() {
     info "Running Installer..."
     blueprint -install "$file"
     rm -f "$file"
-    
     echo ""
     success "Installation Complete!"
     read -p "Press Enter to continue..."
 }
 
-# --- NETWORK INSTALLERS ---
-install_tailscale() {
-    header
-    print_c "TAILSCALE VPN" "$ORANGE"
-    draw_sub
-    info "Downloading Tailscale..."
-    curl -fsSL https://tailscale.com/install.sh | sh
-    echo ""
-    info "Starting Authentication..."
-    tailscale up
-    echo ""
-    success "Tailscale Active!"
-    read -p "Press Enter..."
-}
+# --- TAILSCALE MENU (UPDATED) ---
+menu_tailscale() {
+    while true; do
+        header
+        print_c "TAILSCALE VPN MANAGER" "$ORANGE"
+        draw_sub
+        print_opt "1" "Install Tailscale"
+        print_opt "2" "Uninstall Tailscale"
+        print_opt "3" "Auth/Login (Start)"
+        print_opt "0" "Back" "$RED"
+        draw_bar
+        echo -ne "${CYAN}  Select: ${NC}"
+        read ts_opt
 
-install_cloudflare() {
-    header
-    print_c "CLOUDFLARE TUNNEL" "$ORANGE"
-    draw_sub
-    info "Installing Cloudflared..."
-    # Add Cloudflare GPG key and Repo
-    mkdir -p --mode=0755 /usr/share/keyrings
-    curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-    echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
-    apt-get update && apt-get install cloudflared -y
-    
-    echo ""
-    echo -e "${YELLOW}1. Create a tunnel at https://one.dash.cloudflare.com/${NC}"
-    echo -e "${YELLOW}2. Copy the 'Connector' command.${NC}"
-    echo ""
-    read -p "Paste Token/Command Here: " cf_cmd
-    
-    if [[ "$cf_cmd" == *"cloudflared"* ]]; then
-        eval "$cf_cmd"
-        success "Tunnel Started!"
-    else
-        cloudflared service install "$cf_cmd"
-        success "Tunnel Installed."
-    fi
-    read -p "Press Enter..."
+        case $ts_opt in
+            1)
+                echo ""
+                info "Installing Tailscale..."
+                curl -fsSL https://tailscale.com/install.sh | sh
+                echo ""
+                success "Tailscale Installed."
+                echo -e "${YELLOW}Now select Option 3 to login.${NC}"
+                read -p "Press Enter..."
+                ;;
+            2)
+                echo ""
+                echo -e "${RED}WARNING: Removing Tailscale VPN.${NC}"
+                read -p "Type 'yes' to confirm: " c
+                if [ "$c" == "yes" ]; then
+                    info "Stopping Service..."
+                    systemctl stop tailscaled
+                    systemctl disable tailscaled
+                    
+                    info "Removing Package..."
+                    if [ -f /etc/debian_version ]; then
+                        apt-get remove tailscale -y
+                        apt-get purge tailscale -y
+                    elif [ -f /etc/redhat-release ]; then
+                        yum remove tailscale -y
+                    fi
+                    
+                    info "Cleaning Configs..."
+                    rm -rf /var/lib/tailscale
+                    rm -rf /etc/tailscale
+                    
+                    success "Tailscale Uninstalled."
+                else
+                    echo "Cancelled."
+                fi
+                read -p "Press Enter..."
+                ;;
+            3)
+                echo ""
+                info "Starting Authentication..."
+                tailscale up
+                read -p "Press Enter..."
+                ;;
+            0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
+        esac
+    done
 }
 
 # --- UNINSTALL LOGIC ---
@@ -155,21 +175,25 @@ uninstall_addon() {
         header
         print_c "UNINSTALL MANAGER" "$RED"
         draw_sub
+        echo -e "${GREY}  Select the number to uninstall:${NC}"
+        echo ""
+        
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
         print_opt "4" "Euphoria Theme"
-        print_opt "5" "MC Tools"
+        print_opt "5" "MC Tools (Editor)"
         print_opt "6" "MC Logs"
         print_opt "7" "Player Listing"
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor"
-        print_opt "10" "Subdomains"
+        print_opt "10" "Subdomains Manager"
+        
         draw_sub
-        print_opt "M" "Manual Input" "$YELLOW"
+        print_opt "M" "Manual Input (Type Identifier)" "$YELLOW"
         print_opt "0" "Back" "$GREY"
         draw_bar
-        echo -ne "${RED}  Select Removal: ${NC}"
+        echo -ne "${RED}  Remove Option: ${NC}"
         read rm_opt
         
         case $rm_opt in
@@ -183,30 +207,37 @@ uninstall_addon() {
             8) id="votifiertester" ;;
             9) id="dbedit" ;;
             10) id="subdomains" ;;
-            "M"|"m") echo ""; read -p "Identifier Name: " id ;;
+            "M"|"m") echo ""; echo -e "${YELLOW}Type identifier:${NC}"; read -p "> " id ;;
             0) return ;;
-            *) error "Invalid"; sleep 1; continue ;;
+            *) error "Invalid option"; sleep 1; continue ;;
         esac
 
         if [ -n "$id" ]; then
             echo ""
-            info "Removing $id..."
+            info "Removing extension: $id..."
             cd "$PANEL_DIR" || exit
             blueprint -remove "$id"
-            success "Removed."
-            read -p "Press Enter..."
+            echo ""
+            success "Removal process finished."
+            read -p "Press Enter to return..."
             return
         fi
     done
 }
 
 uninstall_framework() {
-    echo ""; echo -e "${RED}WARNING: Removing Blueprint Framework.${NC}"; 
+    header
+    print_c "UNINSTALL FRAMEWORK" "$RED"
+    draw_sub
+    echo -e "${YELLOW}WARNING: This removes the Blueprint tool.${NC}"
+    echo ""
     read -p "Type 'yes' to confirm: " c
     if [ "$c" == "yes" ]; then
         rm -rf /usr/local/bin/blueprint
         rm -rf "$PANEL_DIR/blueprint"
-        success "Framework Removed."
+        success "Blueprint removed."
+    else
+        echo "Cancelled."
     fi
     read -p "Press Enter..."
 }
@@ -238,7 +269,7 @@ menu_addons() {
         draw_sub
         print_opt "0" "Back" "$RED"
         draw_bar
-        echo -ne "${CYAN}  Select Addon: ${NC}"
+        echo -ne "${CYAN}  Select Addon [0-10]: ${NC}"
         read opt
 
         case $opt in
@@ -277,16 +308,17 @@ menu_blueprint() {
         
         case $opt in
             1) 
-                echo ""; info "Downloading Custom Installer..."
+                echo ""; info "Downloading Installer..."
                 cd "$PANEL_DIR" || exit
                 rm -f blueprint-installer.sh
                 wget -q --show-progress "$BASE_URL/blueprint-installer.sh" -O blueprint-installer.sh
+                
                 if [ -f "blueprint-installer.sh" ]; then
                     bash blueprint-installer.sh
                     rm blueprint-installer.sh
                     success "Done."
                 else
-                    error "Custom installer not found in repo."
+                    error "File blueprint-installer.sh not found."
                 fi
                 read -p "Press Enter..."
                 ;;
@@ -356,8 +388,10 @@ menu_toolbox() {
         print_opt "5" "Database Backup"
         print_opt "6" "Install SSL (Certbot)"
         draw_sub
-        print_opt "7" "Install Tailscale (VPN)" "$ORANGE"
+        print_opt "7" "Tailscale Manager" "$ORANGE"
         print_opt "8" "Setup Cloudflare Tunnel" "$ORANGE"
+        print_opt "9" "Enable Root Access" "$GREEN"
+        print_opt "10" "SSHX (Web Terminal)" "$GREEN"
         print_opt "0" "Back" "$RED"
         draw_bar
         echo -ne "${CYAN}  Select: ${NC}"
@@ -369,8 +403,18 @@ menu_toolbox() {
             4) apt install ufw -y -qq; ufw allow 22; ufw allow 80; ufw allow 443; ufw allow 8080; ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
             5) mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql; success "Backup saved to /root/"; read -p "Press Enter..." ;;
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
-            7) install_tailscale ;;
-            8) install_cloudflare ;;
+            7) menu_tailscale ;;
+            8) 
+                mkdir -p --mode=0755 /usr/share/keyrings
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
+                apt-get update && apt-get install cloudflared -y
+                echo ""; read -p "Paste Token: " t; cloudflared service install $t; success "Done."; sleep 1 ;;
+            9) 
+                echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; 
+                sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
+                service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
+            10) curl -sSf https://sshx.io/get | sh; echo ""; sshx; read -p "Press Enter..." ;;
             0) return ;;
         esac
     done
