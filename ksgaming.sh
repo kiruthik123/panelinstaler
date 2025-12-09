@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # =========================================================
-#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.2)
-#   Addons Repo: kiruthik123/panelinstaler
-#   Installer Repo: kiruthik123/installer
+#   KS HOSTING BY KSGAMING - FINAL STABLE EDITION
+#   Fixes 404/HTML errors by using Official GitHub Installer
 # =========================================================
 
 # --- GITHUB CONFIGURATION ---
@@ -11,7 +10,10 @@ GH_USER="kiruthik123"
 GH_REPO="panelinstaler"
 GH_BRANCH="main"
 
+# URL for downloading Blueprints (Addons)
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
+
+# URL for installing Panel/Wings (Your Custom Repo)
 INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
 
 # --- DIRECTORIES ---
@@ -35,6 +37,7 @@ WIDTH=65
 draw_bar() { printf "${BLUE}%*s${NC}\n" "$WIDTH" '' | tr ' ' '='; }
 draw_sub() { printf "${GREY}%*s${NC}\n" "$WIDTH" '' | tr ' ' '-'; }
 
+# CORRECTED print_c function
 print_c() {
     local text="$1"
     local color="${2:-$WHITE}"
@@ -170,7 +173,7 @@ menu_tailscale() {
     done
 }
 
-# --- CLOUDFLARE MENU (UPDATED REPO) ---
+# --- CLOUDFLARE MENU ---
 menu_cloudflare() {
     while true; do
         header
@@ -186,60 +189,36 @@ menu_cloudflare() {
         case $cf_opt in
             1)
                 echo ""
-                info "Updating Cloudflare Repos (New GPG Key)..."
-                
-                # 1. Create Keyring Dir
+                info "Updating Cloudflare Repos (v2 Key)..."
                 mkdir -p --mode=0755 /usr/share/keyrings
-                
-                # 2. Add New GPG Key (v2)
                 curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
-                
-                # 3. Add Repo to Sources
                 echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list
-                
-                # 4. Install
-                info "Installing Package..."
                 apt-get update && apt-get install cloudflared -y
                 
                 echo ""
                 echo -e "${YELLOW}1. Create a tunnel at https://one.dash.cloudflare.com/${NC}"
                 echo -e "${YELLOW}2. Copy the 'Connector' command.${NC}"
                 echo ""
-                echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
                 read -p "Paste Token/Command Here: " cf_cmd
                 
-                # REMOVE SUDO IF PASTED
                 cf_cmd=${cf_cmd/sudo /}
 
                 if [[ "$cf_cmd" == *"cloudflared"* ]]; then
-                    echo ""
-                    info "Applying Configuration..."
-                    eval "$cf_cmd"
-                    success "Tunnel Started!"
+                    echo ""; info "Applying Configuration..."; eval "$cf_cmd"; success "Tunnel Started!"
                 elif [[ -n "$cf_cmd" ]]; then
-                    echo ""
-                    info "Applying Token..."
-                    cloudflared service install "$cf_cmd"
-                    success "Tunnel Installed."
+                    echo ""; info "Applying Token..."; cloudflared service install "$cf_cmd"; success "Tunnel Installed."
                 else
                     error "No input provided."
                 fi
                 read -p "Press Enter..."
                 ;;
             2)
-                echo ""
-                echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
+                echo ""; echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
                 read -p "Type 'yes' to confirm: " c
                 if [ "$c" == "yes" ]; then
-                    info "Stopping Service..."
-                    systemctl stop cloudflared
-                    systemctl disable cloudflared
-                    info "Removing Package..."
-                    apt-get remove cloudflared -y
-                    apt-get purge cloudflared -y
-                    rm -rf /etc/cloudflared
-                    rm -f /etc/apt/sources.list.d/cloudflared.list
-                    rm -f /usr/share/keyrings/cloudflare-public-v2.gpg
+                    info "Stopping Service..."; systemctl stop cloudflared; systemctl disable cloudflared
+                    info "Removing Package..."; apt-get remove cloudflared -y; apt-get purge cloudflared -y
+                    rm -rf /etc/cloudflared; rm -f /etc/apt/sources.list.d/cloudflared.list
                     success "Cloudflare Uninstalled."
                 fi
                 read -p "Press Enter..."
@@ -294,14 +273,7 @@ uninstall_addon() {
         esac
 
         if [ -n "$id" ]; then
-            echo ""
-            info "Removing extension: $id..."
-            cd "$PANEL_DIR" || exit
-            blueprint -remove "$id"
-            echo ""
-            success "Removal process finished."
-            read -p "Press Enter to return..."
-            return
+            echo ""; info "Removing $id..."; cd "$PANEL_DIR" || exit; blueprint -remove "$id"; success "Removed."; read -p "Press Enter..."; return
         fi
     done
 }
@@ -409,6 +381,7 @@ menu_blueprint() {
             5) uninstall_addon ;;
             6) uninstall_framework ;;
             0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -418,7 +391,7 @@ menu_panel() {
         header
         print_c "PANEL MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Panel (Custom Installer)"
+        print_opt "1" "Install Panel (Your Repo)"
         print_opt "2" "Create Admin User"
         print_opt "3" "Clear Cache"
         print_opt "4" "Reset Permissions"
@@ -432,6 +405,7 @@ menu_panel() {
             3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cleared."; sleep 0.5 ;;
             4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Fixed."; sleep 0.5 ;;
             0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -441,7 +415,7 @@ menu_wings() {
         header
         print_c "WINGS MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Wings (Custom Installer)"
+        print_opt "1" "Install Wings (Your Repo)"
         print_opt "2" "Auto-Configure (Paste Token)"
         print_opt "3" "Restart Wings"
         print_opt "0" "Back" "$RED"
@@ -453,6 +427,7 @@ menu_wings() {
             2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
             3) systemctl restart wings; success "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -481,15 +456,12 @@ menu_toolbox() {
             1) header; free -h | grep Mem; df -h / | awk 'NR==2'; read -p "Press Enter..." ;;
             2) fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile; echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab; success "Swap Added."; sleep 0.5 ;;
             3) apt-get install speedtest-cli -y -qq; speedtest-cli --simple; read -p "Press Enter..." ;;
-            4) apt install ufw -y -qq; ufw allow 22; ufw allow 80; ufw allow 443; ufw allow 8080; ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
+            4) apt install ufw -y -qq; ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw allow 8080 && ufw allow 2022; yes | ufw enable; success "Firewall Secure."; sleep 0.5 ;;
             5) mysqldump -u root -p pterodactyl > /root/backup_$(date +%F).sql; success "Backup saved to /root/"; read -p "Press Enter..." ;;
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
             7) menu_tailscale ;;
             8) menu_cloudflare ;;
-            9) 
-                echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; 
-                sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
-                service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
+            9) echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
             10) curl -sSf https://sshx.io/get | sh; echo ""; sshx; read -p "Press Enter..." ;;
             0) return ;;
         esac
