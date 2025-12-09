@@ -106,15 +106,16 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
-# --- TAILSCALE MENU (UPDATED) ---
+# --- TAILSCALE MENU (FIXED) ---
 menu_tailscale() {
     while true; do
         header
         print_c "TAILSCALE VPN MANAGER" "$ORANGE"
         draw_sub
         print_opt "1" "Install Tailscale"
-        print_opt "2" "Uninstall Tailscale"
-        print_opt "3" "Auth/Login (Start)"
+        print_opt "2" "Generate Login Link (Auth)"
+        print_opt "3" "Check Status / IP"
+        print_opt "4" "Uninstall Tailscale"
         print_opt "0" "Back" "$RED"
         draw_bar
         echo -ne "${CYAN}  Select: ${NC}"
@@ -123,44 +124,69 @@ menu_tailscale() {
         case $ts_opt in
             1)
                 echo ""
+                # Check for TUN device (Common VPS Error)
+                if [ ! -c /dev/net/tun ]; then
+                   error "TUN Device missing!"
+                   echo "Your VPS provider has disabled TUN/TAP."
+                   echo "Please ask your host to enable 'TUN/TAP' in your server settings."
+                   read -p "Press Enter to try anyway..."
+                fi
+
                 info "Installing Tailscale..."
                 curl -fsSL https://tailscale.com/install.sh | sh
                 echo ""
-                success "Tailscale Installed."
-                echo -e "${YELLOW}Now select Option 3 to login.${NC}"
+                if command -v tailscale &> /dev/null; then
+                    success "Tailscale Installed."
+                    echo -e "${YELLOW}>> NOW SELECT OPTION 2 TO LOGIN <<${NC}"
+                else
+                    error "Installation Failed."
+                fi
                 read -p "Press Enter..."
                 ;;
             2)
+                header
+                print_c "LOGIN LINK GENERATOR" "$GREEN"
+                draw_sub
                 echo ""
-                echo -e "${RED}WARNING: Removing Tailscale VPN.${NC}"
-                read -p "Type 'yes' to confirm: " c
-                if [ "$c" == "yes" ]; then
-                    info "Stopping Service..."
-                    systemctl stop tailscaled
-                    systemctl disable tailscaled
-                    
-                    info "Removing Package..."
-                    if [ -f /etc/debian_version ]; then
-                        apt-get remove tailscale -y
-                        apt-get purge tailscale -y
-                    elif [ -f /etc/redhat-release ]; then
-                        yum remove tailscale -y
-                    fi
-                    
-                    info "Cleaning Configs..."
-                    rm -rf /var/lib/tailscale
-                    rm -rf /etc/tailscale
-                    
-                    success "Tailscale Uninstalled."
+                if ! command -v tailscale &> /dev/null; then
+                    error "Tailscale not installed (Use Option 1)."
                 else
-                    echo "Cancelled."
+                    echo -e "${YELLOW}Running auth command...${NC}"
+                    echo -e "${WHITE}If a link appears below, COPY and PASTE it into your browser.${NC}"
+                    echo ""
+                    # Force reset to ensure link generation
+                    tailscale up --reset
+                    echo ""
+                    success "Command Finished."
                 fi
                 read -p "Press Enter..."
                 ;;
             3)
                 echo ""
-                info "Starting Authentication..."
-                tailscale up
+                if command -v tailscale &> /dev/null; then
+                    tailscale status
+                    echo ""
+                    tailscale ip -4
+                else
+                    error "Tailscale not installed."
+                fi
+                read -p "Press Enter..."
+                ;;
+            4)
+                echo ""
+                echo -e "${RED}WARNING: Removing Tailscale VPN.${NC}"
+                read -p "Type 'yes' to confirm: " c
+                if [ "$c" == "yes" ]; then
+                    info "Removing..."
+                    systemctl stop tailscaled 2>/dev/null
+                    if [ -f /etc/debian_version ]; then
+                        apt-get remove tailscale -y
+                    elif [ -f /etc/redhat-release ]; then
+                        yum remove tailscale -y
+                    fi
+                    rm -rf /var/lib/tailscale /etc/tailscale
+                    success "Uninstalled."
+                fi
                 read -p "Press Enter..."
                 ;;
             0) return ;;
@@ -175,9 +201,6 @@ uninstall_addon() {
         header
         print_c "UNINSTALL MANAGER" "$RED"
         draw_sub
-        echo -e "${GREY}  Select the number to uninstall:${NC}"
-        echo ""
-        
         print_opt "1" "Recolor Theme"
         print_opt "2" "Sidebar Theme"
         print_opt "3" "Server Backgrounds"
@@ -188,9 +211,8 @@ uninstall_addon() {
         print_opt "8" "Votifier Tester"
         print_opt "9" "Database Editor"
         print_opt "10" "Subdomains Manager"
-        
         draw_sub
-        print_opt "M" "Manual Input (Type Identifier)" "$YELLOW"
+        print_opt "M" "Manual Input (Type Name)" "$YELLOW"
         print_opt "0" "Back" "$GREY"
         draw_bar
         echo -ne "${RED}  Remove Option: ${NC}"
