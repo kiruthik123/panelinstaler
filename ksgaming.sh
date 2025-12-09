@@ -1,41 +1,39 @@
 #!/bin/bash
 
-#=========================================================
-# KS HOSTING BY KSGAMING - FINAL STABLE EDITION
-# Fixes 404/HTML errors by using Official GitHub Installer
-#=========================================================
+# =========================================================
+#   KS HOSTING BY KSGAMING - SUPREME STORE EDITION (v6.2)
+#   Addons Repo: kiruthik123/panelinstaler
+#   Installer Repo: kiruthik123/installer
+# =========================================================
 
 # --- GITHUB CONFIGURATION ---
-GH_USER="kirthik123"
+GH_USER="kiruthik123"
 GH_REPO="panelinstaler"
 GH_BRANCH="main"
 
-# URL for downloading Blueprints (Addons)
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
-
-# URL for official/stable Pterodactyl installation script
-OFFICIAL_INSTALLER="https://raw.githubusercontent.com/pterodactyl-installer/pterodactyl-installer/master/install.sh"
+INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
 
 # --- DIRECTORIES ---
 PANEL_DIR="/var/www/pterodactyl"
 
 # --- NEON COLORS ---
-NC=‘\033[0m’ 
-RED=‘\033[1;31m’
-GREEN=‘\033[1;32m’
-BLUE=‘\033[1;34m’
-YELLOW=‘\033[1;33m’
-PINK=‘\033[1;95m’
-CYAN=‘\033[1;96m’
-WHITE=‘\033[1;97m’
-GREY=‘\033[1;90m’
-ORANGE=‘\033[1;38;5;208m’
+NC='\033[0m' 
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+YELLOW='\033[1;33m'
+PINK='\033[1;95m'
+CYAN='\033[1;96m'
+WHITE='\033[1;97m'
+GREY='\033[1;90m'
+ORANGE='\033[1;38;5;208m'
 
 # --- UI UTILITIES ---
 WIDTH=65
 
-draw_bar() { printf "${BLUE}%*s${NC}\n" "$WIDTH" ‘’ | tr ‘ ‘ ‘=’; }
-draw_sub() { printf "${GREY}%*s${NC}\n" "$WIDTH" ‘’ | tr ‘ ‘ ‘-’; }
+draw_bar() { printf "${BLUE}%*s${NC}\n" "$WIDTH" '' | tr ' ' '='; }
+draw_sub() { printf "${GREY}%*s${NC}\n" "$WIDTH" '' | tr ' ' '-'; }
 
 print_c() {
     local text="$1"
@@ -58,7 +56,7 @@ success() { echo -e "${GREEN}[DONE]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # --- HEADER ---
-headery() {
+header() {
     cleare
     draw_bar
     print_c "KS HOSTING" "$PINK"
@@ -108,6 +106,150 @@ install_bp() {
     read -p "Press Enter to continue..."
 }
 
+# --- TAILSCALE MENU ---
+menu_tailscale() {
+    while true; do
+        headery
+        print_c "TAILSCALE VPN MANAGER" "$ORANGE"
+        draw_sub
+        print_opt "1" "Install Tailscale"
+        print_opt "2" "Generate Login Link"
+        print_opt "3" "Check Status / IP"
+        print_opt "4" "Uninstall Tailscale"
+        print_opt "0" "Back" "$RED"
+        draw_bar
+        echo -ne "${CYAN}  Select: ${NC}"
+        read ts_opt
+
+        case $ts_opt in
+            1)
+                echo ""
+                if [! -c /dev/net/tun ]; then
+                   error "TUN Device missing! Ask your VPS host to enable TUN/TAP."
+                   read -p "Press Enter..."
+                fi
+                info "Installing Tailscale..."
+                curl -fsSL https://tailscale.com/install.sh | sh
+                echo ""
+                success "Tailscale Installed."
+                read -p "Press Enter..."
+                ;;
+            2)
+                headery
+                print_c "LOGIN LINK GENERATOR" "$GREEN"
+                draw_sub
+                echo ""
+                if ! command -in tailscale &> /dev/null; then
+                    error "Tailscale not installed."
+                else
+                    echo -e "${YELLOW}Running auth command...${NC}"
+                    tailscale up --reset
+                    echo ""
+                    success "Done."
+                fi
+                read -p "Press Enter..."
+                ;;
+            3)
+                echo ""; tailscale status; echo ""; tailscale ip -4; read -p "Press Enter..."
+                ;;
+            4)
+                echo ""; echo -e "${RED}WARNING: Removing Tailscale VPN.${NC}"
+                read -p "Type 'yes' to confirm: " cs
+                if [ "$c" == "yes" ]; then
+                    info "Removing..."
+                    systemctl stop tailscaled 2>/dev/null
+                    if [-f /etc/debian_version ]; then apt-get remove tailscale -y; elif [ -f /etc/redhat-release]; then yum remove tailscale -y; fi
+                    rm -rf /var/lib/tailscale /etc/tailscale
+                    success "Uninstalled."
+                fi
+                read -p "Press Enter..."
+                ;;
+            0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- CLOUDFLARE MENU (UPDATED REPO) ---
+menu_cloudflare() {
+    while true; do
+        headery
+        print_c "CLOUDFLARE TUNNEL MANAGER" "$ORANGE"
+        draw_sub
+        print_opt "1" "Install & Setup Tunnel"
+        print_opt "2" "Uninstall Cloudflared"
+        print_opt "0" "Back" "$RED"
+        draw_bar
+        echo -ne "${CYAN}  Select: ${NC}"
+        read cf_opt
+
+        case $cf_opt in
+            1)
+                echo ""
+                info "Updating Cloudflare Repos (New GPG Key)..."
+                
+                # 1. Create Keyring Dir
+                mkdir -p --mode=0755/usr/share/keyrings
+                
+                # 2. Add New GPG Key (v2)
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
+                
+                # 3. Add Repo to Sources
+                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list
+                
+                # 4. Install
+                info "Installing Package..."
+                apt-get update && apt-get install cloudflared -y
+                
+                echo ""
+                echo -e "${YELLOW}1. Create a tunnel at https://one.dash.cloudflare.com/${NC}"
+                echo -e "${YELLOW}2. Copy the 'Connector' command.${NC}"
+                echo ""
+                echo -e "${GREY}(You can paste the full 'sudo cloudflared...' command)${NC}"
+                read -p "Paste Token/Command Here: " cf_cmd
+                
+                # REMOVE SUDO IF PASTED
+                cf_cmd=${cf_cmd/sudo /}
+
+                if [[ "$cf_cmd" == *"cloudflared"* ]]; then
+                    echo ""
+                    info "Applying Configuration..."
+                    eval "$cf_cmd"
+                    success "Tunnel Started!"
+                elif [[ -n "$cf_cmd" ]]; then
+                    echo ""
+                    info "Applying Token..."
+                    cloudflared service install "$cf_cmd"
+                    success "Tunnel Installed."
+                else
+                    error "No input provided."
+                fi
+                read -p "Press Enter..."
+                ;;
+            2)
+                echo ""
+                echo -e "${RED}WARNING: Removing Cloudflared Tunnel.${NC}"
+                read -p "Type 'yes' to confirm: " cs
+                if [ "$c" == "yes" ]; then
+                    info "Stopping Service..."
+                    systemctl stop cloudflared
+                    systemctl disable cloudflared
+                    info "Removing Package..."
+                    apt-get remove cloudflared -y
+                    apt-get purge cloudflared -y
+                    rm -rf/etc/cloudflared
+                    rm -f /etc/apt/sources.list.d/cloudflared.list
+                    rm -f /usr/share/keyrings/cloudflare-public-v2.gpg
+                    success "Cloudflare Uninstalled."
+                fi
+                read -p "Press Enter..."
+                ;;
+            0) return ;;
+            *) error "Invalid"; sleep 0.5 ;;
+        esac
+    done
+}
+
 # --- UNINSTALL LOGIC ---
 uninstall_addon() {
     while true; do
@@ -152,7 +294,14 @@ uninstall_addon() {
         esac
 
         if [ -n "$id" ]; then
-            echo ""; info "Removing $id..."; cd "$PANEL_DIR" || exit; blueprint -remove "$id"; success "Removed."; read -p "Press Enter..."; return
+            echo ""
+            info "Removing extension: $id..."
+            cd "$PANEL_DIR" || exit
+            blueprint -remove "$id"
+            echo ""
+            success "Removal process finished."
+            read -p "Press Enter to return..."
+            return
         fi
     done
 }
@@ -217,7 +366,7 @@ menu_addons() {
             10) install_bp "Subdomains" "subdomains.blueprint" ;;
             0) return ;;
             *) error "Invalid"; sleep 0.5 ;;
-        end
+        esac
     done
 }
 
@@ -260,7 +409,6 @@ menu_blueprint() {
             5) uninstall_addon ;;
             6) uninstall_framework ;;
             0) return ;;
-            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -270,7 +418,7 @@ menu_panel() {
         headery
         print_c "PANEL MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Panel (Your Repo)"
+        print_opt "1" "Install Panel (Custom Installer)"
         print_opt "2" "Create Admin User"
         print_opt "3" "Clear Cache"
         print_opt "4" "Reset Permissions"
@@ -284,7 +432,6 @@ menu_panel() {
             3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cleared."; sleep 0.5 ;;
             4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Fixed."; sleep 0.5 ;;
             0) return ;;
-            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -294,7 +441,7 @@ menu_wings() {
         headery
         print_c "WINGS MANAGEMENT" "$YELLOW"
         draw_sub
-        print_opt "1" "Install Wings (Your Repo)"
+        print_opt "1" "Install Wings (Custom Installer)"
         print_opt "2" "Auto-Configure (Paste Token)"
         print_opt "3" "Restart Wings"
         print_opt "0" "Back" "$RED"
@@ -306,7 +453,6 @@ menu_wings() {
             2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
             3) systemctl restart wings; success "Wings Restarted."; sleep 0.5 ;;
             0) return ;;
-            *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
@@ -340,7 +486,10 @@ menu_toolbox() {
             6) apt install certbot -y -qq; echo ""; read -p "Enter Domain: " DOM; certbot certonly --standalone -d $DOM; read -p "Press Enter..." ;;
             7) menu_tailscale ;;
             8) menu_cloudflare ;;
-            9) echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
+            9) 
+                echo -e "${CYAN}Setting Root Password...${NC}"; passwd root; 
+                sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; 
+                service ssh restart; success "Root Access Enabled."; read -p "Press Enter..." ;;
             10) curl -sSf https://sshx.io/get | sh; echo ""; sshx; read -p "Press Enter..." ;;
             0) return ;;
         esac
@@ -379,8 +528,8 @@ while true; do
         5) menu_toolbox ;;
         6) 
             echo ""; echo -e "${RED}WARNING: DELETE ALL DATA?${NC}"; read -p "Type 'yes': " CONF
-            if [ "$CONF" == "yes" ]; then rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings; success "Deleted."; fi; sleep 1 ;;
+            if [ "$CONF" == "yes" ]; theny rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings; success "Deleted."; fi; sleep 1 ;;
         0) clear; exit 0 ;;
         *) error "Invalid"; sleep 0.5 ;;
     esac
-done
+dona
