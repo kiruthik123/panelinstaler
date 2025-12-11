@@ -1,387 +1,641 @@
 #!/usr/bin/env bash
-#
-# Skyport Panel/Wings Comprehensive Installation Script
-# Professional deployment tool for Skyport game server management platform
-#
-# System Requirements: Debian/Ubuntu-based Linux distribution
-# Version: 2.0.0
-#
 
-set -euo pipefail
+# =========================================================
+#   KS HOSTING - Enterprise Panel Management Suite
+#   Professional Multi-Panel Deployment & Administration
+# =========================================================
 
-# --- Configuration ---
-readonly PANEL_DIR="/etc/skyport"
-readonly WINGS_DIR="/etc/skyportd"
-readonly PANEL_REPO="https://github.com/skyport-team/panel"
-readonly WINGS_REPO="https://github.com/skyport-team/skyportd"
-readonly NODE_VERSION="22.x"
-readonly SCRIPT_NAME="skyport-installer"
-readonly LOG_FILE="/var/log/skyport-install.log"
+# --- GITHUB CONFIGURATION ---
+readonly GH_USER="kiruthik123"
+readonly GH_REPO="panelinstaler"
+readonly GH_BRANCH="main"
+readonly BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
+readonly INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
 
-# --- Color and Formatting Constants ---
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
+# --- DIRECTORIES ---
+readonly PANEL_DIR="/var/www/pterodactyl"
+
+# --- COLOR PALETTE ---
+readonly NC='\033[0m'
+readonly RED='\033[1;31m'
+readonly GREEN='\033[1;32m'
+readonly BLUE='\033[1;34m'
 readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly MAGENTA='\033[0;35m'
-readonly CYAN='\033[0;36m'
-readonly BOLD='\033[1m'
-readonly NC='\033[0m' # No Color
-readonly DIVIDER="================================================================"
+readonly MAGENTA='\033[1;95m'
+readonly CYAN='\033[1;96m'
+readonly WHITE='\033[1;97m'
+readonly GRAY='\033[1;90m'
+readonly ORANGE='\033[1;38;5;208m'
+readonly PURPLE='\033[1;35m'
 
-# --- Logging Functions ---
-log_info() {
-    echo -e "${BLUE}ℹ ${NC}$1" | tee -a "$LOG_FILE"
+# --- UI CONSTANTS ---
+readonly WIDTH=70
+readonly VERSION="2.1.0"
+
+# --- UI FUNCTIONS ---
+draw_bar() { 
+    printf "${BLUE}╔%*s╗${NC}\n" $((WIDTH-2)) | tr ' ' '═'
 }
 
-log_success() {
-    echo -e "${GREEN}✓ ${NC}$1" | tee -a "$LOG_FILE"
+draw_sub() {
+    printf "${GRAY}╠%*s╣${NC}\n" $((WIDTH-2)) | tr ' ' '─'
 }
 
-log_warning() {
-    echo -e "${YELLOW}⚠ ${NC}$1" | tee -a "$LOG_FILE"
+draw_footer() {
+    printf "${BLUE}╚%*s╝${NC}\n" $((WIDTH-2)) | tr ' ' '═'
 }
 
-log_error() {
-    echo -e "${RED}✗ ${NC}$1" | tee -a "$LOG_FILE"
+print_header() {
+    local title="$1"
+    local color="${2:-$WHITE}"
+    printf "${BLUE}║${NC}%*s${color}╡ %-52s ╞${NC}%*s${BLUE}║${NC}\n" \
+        $(( (WIDTH - ${#title} - 6) / 2 )) "" "$title" \
+        $(( WIDTH - ${#title} - 6 - (WIDTH - ${#title} - 6) / 2 )) ""
 }
 
-log_step() {
-    echo -e "\n${CYAN}▶ ${BOLD}$1${NC}" | tee -a "$LOG_FILE"
+print_section() {
+    local title="$1"
+    printf "${BLUE}║${NC}  ${MAGENTA}▸${NC} ${CYAN}%s${NC}\n" "$title"
 }
 
-# --- Validation Functions ---
-validate_root() {
-    if [[ $EUID -ne 0 ]]; then
-        log_error "This script requires elevated privileges. Please execute with 'sudo'."
-        exit 1
-    fi
+print_option() {
+    local num="$1"
+    local text="$2"
+    local icon="${3:-"○"}"
+    local color="${4:-$WHITE}"
+    printf "${BLUE}║${NC}    ${GREEN}%s${NC} ${CYAN}[%s]${NC} ${color}%-50s${NC} ${BLUE}║${NC}\n" "$icon" "$num" "$text"
 }
 
-validate_system() {
-    if ! [[ -f /etc/debian_version || -f /etc/lsb-release ]]; then
-        log_error "Unsupported operating system. This script requires Debian/Ubuntu."
-        exit 1
-    fi
+print_status() {
+    local type="$1"
+    local message="$2"
+    case $type in
+        "info") echo -e "${CYAN}📘 INFO${NC}    $message" ;;
+        "success") echo -e "${GREEN}✅ SUCCESS${NC} $message" ;;
+        "error") echo -e "${RED}❌ ERROR${NC}   $message" ;;
+        "warning") echo -e "${YELLOW}⚠️  WARNING${NC} $message" ;;
+    esac
 }
 
-check_command() {
-    if ! command -v "$1" &> /dev/null; then
-        return 1
-    fi
-    return 0
-}
-
-# --- Installation Functions ---
-install_docker() {
-    log_step "Installing Docker Engine"
-    
-    if check_command docker; then
-        log_info "Docker is already installed"
-        return
-    fi
-
-    log_info "Adding Docker repository and installing..."
-    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-    sh /tmp/get-docker.sh > /dev/null 2>&1
-    
-    if systemctl enable --now docker > /dev/null 2>&1; then
-        log_success "Docker Engine installed and service enabled"
-    else
-        log_error "Docker installation failed"
-        exit 1
-    fi
-}
-
-install_nodejs() {
-    log_step "Installing Node.js Runtime"
-    
-    if check_command node && node --version | grep -q "v22"; then
-        log_info "Node.js v22 is already installed"
-        return
-    fi
-
-    log_info "Configuring NodeSource repository..."
-    mkdir -p /etc/apt/keyrings
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
-        gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-    
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_VERSION nodistro main" | \
-        tee /etc/apt/sources.list.d/nodesource.list > /dev/null
-    
-    apt-get update > /dev/null 2>&1
-    
-    if apt-get install -y nodejs git > /dev/null 2>&1; then
-        log_success "Node.js $NODE_VERSION and Git installed successfully"
-    else
-        log_error "Node.js installation failed"
-        exit 1
-    fi
-}
-
-install_prerequisites() {
-    log_step "Installing System Prerequisites"
-    
-    apt-get update > /dev/null 2>&1
-    apt-get install -y curl gnupg ca-certificates > /dev/null 2>&1
-    
-    install_docker
-    install_nodejs
-    
-    log_success "All prerequisites installed"
-}
-
-# --- Panel Installation ---
-install_panel() {
-    log_step "Initiating Skyport Panel Installation"
-    
-    if [[ -d "$PANEL_DIR" ]]; then
-        log_warning "Panel directory '$PANEL_DIR' already exists. Installation aborted."
-        return 1
-    fi
-
-    install_prerequisites
-
-    log_step "Cloning Skyport Panel Repository"
-    if git clone "$PANEL_REPO" "$PANEL_DIR" > /dev/null 2>&1; then
-        log_success "Repository cloned successfully"
-    else
-        log_error "Failed to clone repository"
-        return 1
-    fi
-
-    cd "$PANEL_DIR"
-
-    log_step "Installing Node.js Dependencies"
-    if npm install --silent; then
-        log_success "Dependencies installed"
-    else
-        log_error "npm installation failed"
-        return 1
-    fi
-
-    log_step "Configuring Panel"
-    cp example_config.json config.json
-    
-    log_step "Initializing Database"
-    if npm run seed --silent; then
-        log_success "Database seeded"
-    else
-        log_warning "Database seeding encountered issues"
-    fi
-
-    log_step "Creating Administrator Account"
-    npm run createUser
-
-    log_step "Configuring System Service"
-    cat > /etc/systemd/system/skyport-panel.service << EOF
-[Unit]
-Description=Skyport Panel Service
-Documentation=https://github.com/skyport-team/panel
-After=network.target docker.service
-Requires=docker.service
-
-[Service]
-Type=exec
-User=root
-WorkingDirectory=$PANEL_DIR
-ExecStart=/usr/bin/npm start
-Restart=always
-RestartSec=3
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=skyport-panel
-LimitNOFILE=65536
-TimeoutStopSec=30
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    systemctl daemon-reload
-    systemctl enable skyport-panel.service > /dev/null 2>&1
-    
-    log_success "Panel installation completed successfully"
-    
-    cat << EOF
-
-${GREEN}${DIVIDER}
-                    PANEL INSTALLATION COMPLETE
-${DIVIDER}${NC}
-
-${BOLD}Configuration:${NC}
-  • Configuration File: ${PANEL_DIR}/config.json
-  • Service Name: skyport-panel.service
-  • Installation Path: ${PANEL_DIR}
-
-${BOLD}Next Steps:${NC}
-  1. Edit configuration: ${CYAN}nano ${PANEL_DIR}/config.json${NC}
-  2. Start the service: ${CYAN}systemctl start skyport-panel${NC}
-  3. Monitor logs: ${CYAN}journalctl -u skyport-panel -f${NC}
-
-${YELLOW}⚠ Action Required: Update database configuration in config.json${NC}
-${DIVIDER}
-EOF
-}
-
-# --- Wings Installation ---
-install_wings() {
-    log_step "Initiating Skyport Wings Installation"
-    
-    if [[ -d "$WINGS_DIR" ]]; then
-        log_warning "Wings directory '$WINGS_DIR' already exists. Installation aborted."
-        return 1
-    fi
-
-    install_prerequisites
-
-    log_step "Cloning Skyport Wings Repository"
-    if git clone "$WINGS_REPO" "$WINGS_DIR" > /dev/null 2>&1; then
-        log_success "Repository cloned successfully"
-    else
-        log_error "Failed to clone repository"
-        return 1
-    fi
-
-    cd "$WINGS_DIR"
-
-    log_step "Installing Node.js Dependencies"
-    if npm install --silent; then
-        log_success "Dependencies installed"
-    else
-        log_error "npm installation failed"
-        return 1
-    fi
-
-    log_step "Configuring Wings"
-    cp example_config.json config.json
-
-    log_step "Configuring System Service"
-    cat > /etc/systemd/system/skyport-wings.service << EOF
-[Unit]
-Description=Skyport Wings Daemon
-Documentation=https://github.com/skyport-team/skyportd
-After=network.target docker.service
-Requires=docker.service
-PartOf=docker.service
-
-[Service]
-Type=exec
-User=root
-WorkingDirectory=$WINGS_DIR
-ExecStart=/usr/bin/node $WINGS_DIR/index.js
-Restart=always
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=skyport-wings
-LimitNOFILE=infinity
-LimitNPROC=infinity
-LimitCORE=infinity
-TimeoutStartSec=0
-Delegate=yes
-KillMode=process
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    systemctl daemon-reload
-    systemctl enable skyport-wings.service > /dev/null 2>&1
-    
-    log_success "Wings installation completed successfully"
-    
-    cat << EOF
-
-${GREEN}${DIVIDER}
-                    WINGS INSTALLATION COMPLETE
-${DIVIDER}${NC}
-
-${BOLD}Configuration:${NC}
-  • Configuration File: ${WINGS_DIR}/config.json
-  • Service Name: skyport-wings.service
-  • Installation Path: ${WINGS_DIR}
-
-${BOLD}Next Steps:${NC}
-  1. Edit configuration: ${CYAN}nano ${WINGS_DIR}/config.json${NC}
-  2. Configure panel connection in config.json
-  3. Start the service: ${CYAN}systemctl start skyport-wings${NC}
-  4. Monitor logs: ${CYAN}journalctl -u skyport-wings -f${NC}
-
-${YELLOW}⚠ Action Required: Configure panel connection in config.json${NC}
-${DIVIDER}
-EOF
-}
-
-# --- Main Execution ---
-main() {
+# --- HEADER DISPLAY ---
+header() {
     clear
+    draw_bar
+    print_header "🛡️  KS HOSTING MANAGEMENT SUITE" "$MAGENTA"
+    print_header "Version $VERSION | Enterprise Edition" "$GRAY"
+    draw_sub
+    printf "${BLUE}║${NC}  ${GRAY}User:${NC} ${WHITE}%s${NC} ${GRAY}|${NC} ${GRAY}IP:${NC} ${WHITE}%s${NC} ${GRAY}|${NC} ${GRAY}Host:${NC} ${WHITE}%s${NC} %*s${BLUE}║${NC}\n" \
+        "$USER" "$(hostname -I | awk '{print $1}')" "$(hostname)" \
+        $((WIDTH - 30 - ${#USER} - ${#HOSTNAME})) ""
+    draw_bar
+}
+
+# --- BLUEPRINT INSTALLER ---
+install_bp() {
+    local name="$1"
+    local file="$2"
+    local url="$BASE_URL/$file"
+
+    header
+    print_header "📦 INSTALLING: $name" "$YELLOW"
+    draw_sub
+    echo ""
     
-    echo -e "${MAGENTA}${BOLD}"
-    echo "╔═══════════════════════════════════════════════════════════╗"
-    echo "║                Skyport Deployment Manager                 ║"
-    echo "║                 Professional Installer v2.0               ║"
-    echo "╚═══════════════════════════════════════════════════════════╝"
-    echo -e "${NC}"
+    if ! command -v blueprint &> /dev/null; then
+        print_status "error" "Blueprint framework not found"
+        echo -e "${GRAY}Please install Blueprint framework first.${NC}"
+        read -p "🔄 Press Enter to continue..."
+        return 1
+    fi
+
+    cd "$PANEL_DIR" || { print_status "error" "Cannot access panel directory"; return 1; }
     
-    validate_root
-    validate_system
+    print_status "info" "Downloading $name..."
+    if wget -q --show-progress "$url" -O "$file"; then
+        print_status "success" "Download completed"
+    else
+        print_status "error" "Download failed: $file"
+        read -p "🔄 Press Enter to continue..."
+        return 1
+    fi
+
+    echo ""
+    print_status "info" "Installing extension..."
+    if blueprint -install "$file"; then
+        print_status "success" "Installation complete"
+    else
+        print_status "error" "Installation failed"
+    fi
     
-    # Create log file
-    > "$LOG_FILE"
-    log_info "Installation started at $(date)"
-    log_info "System: $(lsb_release -ds 2>/dev/null || cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2)"
-    
+    rm -f "$file"
+    echo ""
+    read -p "🚀 Press Enter to continue..."
+}
+
+# --- TAILSCALE MANAGER ---
+menu_tailscale() {
     while true; do
-        echo -e "\n${CYAN}${BOLD}Deployment Selection${NC}"
-        echo -e "${BLUE}${DIVIDER}${NC}"
-        echo -e "${BOLD}Select component to install:${NC}"
-        echo -e "  ${GREEN}1)${NC} 🖥️  Skyport Panel (Control Panel)"
-        echo -e "     ${CYAN}• Web Interface & API${NC}"
-        echo -e "     ${CYAN}• Database Required${NC}"
-        echo ""
-        echo -e "  ${GREEN}2)${NC} 🚀 Skyport Wings (Game Node)"
-        echo -e "     ${CYAN}• Docker-based Game Servers${NC}"
-        echo -e "     ${CYAN}• High Performance Required${NC}"
-        echo ""
-        echo -e "  ${GREEN}3)${NC} 📋 Display System Information"
-        echo -e "  ${GREEN}4)${NC} 🚪 Exit Installer"
-        echo -e "${BLUE}${DIVIDER}${NC}"
-        
-        read -rp "$(echo -e ${BOLD}'Enter selection [1-4]: '${NC})" choice
-        
-        case $choice in
+        header
+        print_header "🔐 TAILSCALE VPN MANAGER" "$ORANGE"
+        draw_sub
+        print_option "1" "Install Tailscale VPN" "🔧"
+        print_option "2" "Generate Auth Link" "🔗"
+        print_option "3" "View Status & IP" "📊"
+        print_option "4" "Remove Tailscale" "🗑️"
+        draw_sub
+        print_option "0" "Return to Main Menu" "↩️" "$RED"
+        draw_footer
+        echo -ne "${CYAN}🛠️  Select option [0-4]: ${NC}"
+        read -r ts_opt
+
+        case $ts_opt in
             1)
-                install_panel
+                echo ""
+                if [ ! -c /dev/net/tun ]; then
+                    print_status "error" "TUN device unavailable"
+                    echo -e "${YELLOW}Please enable TUN/TAP support with your VPS provider.${NC}"
+                else
+                    print_status "info" "Installing Tailscale..."
+                    curl -fsSL https://tailscale.com/install.sh | sh
+                    print_status "success" "Tailscale installed successfully"
+                fi
+                read -p "🔄 Press Enter..."
                 ;;
             2)
-                install_wings
+                header
+                print_header "🔗 AUTHENTICATION LINK" "$GREEN"
+                draw_sub
+                echo ""
+                if command -v tailscale &> /dev/null; then
+                    echo -e "${YELLOW}Generating authentication link...${NC}"
+                    tailscale up --reset
+                    echo ""
+                    print_status "success" "Authentication initiated"
+                else
+                    print_status "error" "Tailscale not installed"
+                fi
+                read -p "🔄 Press Enter..."
                 ;;
             3)
-                log_step "System Information"
-                echo -e "${BOLD}OS:${NC} $(lsb_release -ds 2>/dev/null || cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2)"
-                echo -e "${BOLD}Kernel:${NC} $(uname -r)"
-                echo -e "${BOLD}Architecture:${NC} $(uname -m)"
-                echo -e "${BOLD}Memory:${NC} $(free -h | awk '/^Mem:/ {print $2}')"
-                echo -e "${BOLD}Storage:${NC} $(df -h / | awk 'NR==2 {print $4}') available"
+                echo ""
+                print_status "info" "Connection Status:"
+                tailscale status
+                echo -e "\n${YELLOW}IP Address:${NC} $(tailscale ip -4 2>/dev/null || echo "Not connected")"
+                read -p "🔄 Press Enter..."
                 ;;
             4)
-                log_info "Installation completed. Log saved to: $LOG_FILE"
-                echo -e "${GREEN}Thank you for using Skyport Installer${NC}"
-                exit 0
+                echo ""
+                print_status "warning" "⚠️  TAILSCALE REMOVAL"
+                read -p "Type 'CONFIRM' to proceed: " confirm
+                if [[ "$confirm" == "CONFIRM" ]]; then
+                    print_status "info" "Removing Tailscale..."
+                    systemctl stop tailscaled 2>/dev/null
+                    apt-get remove tailscale -y 2>/dev/null || yum remove tailscale -y 2>/dev/null
+                    rm -rf /var/lib/tailscale /etc/tailscale
+                    print_status "success" "Tailscale uninstalled"
+                else
+                    print_status "info" "Removal cancelled"
+                fi
+                read -p "🔄 Press Enter..."
                 ;;
-            *)
-                log_error "Invalid selection. Please choose 1, 2, 3, or 4."
-                ;;
+            0) return ;;
+            *) print_status "error" "Invalid selection"; sleep 0.5 ;;
         esac
-        
-        if [[ $choice == 1 || $choice == 2 ]]; then
-            read -rp "$(echo -e ${BOLD}'Press Enter to continue...'${NC})" -n1
-        fi
     done
 }
 
-# Error handling
-trap 'log_error "Installation interrupted at line $LINENO"; exit 1' INT TERM
+# --- CLOUDFLARE TUNNEL MANAGER ---
+menu_cloudflare() {
+    while true; do
+        header
+        print_header "☁️  CLOUDFLARE TUNNEL MANAGER" "$ORANGE"
+        draw_sub
+        print_option "1" "Install & Configure Tunnel" "🔧"
+        print_option "2" "Uninstall Cloudflared" "🗑️"
+        draw_sub
+        print_option "0" "Return to Main Menu" "↩️" "$RED"
+        draw_footer
+        echo -ne "${CYAN}🛠️  Select option [0-2]: ${NC}"
+        read -r cf_opt
 
-main "$@"
+        case $cf_opt in
+            1)
+                echo ""
+                print_status "info" "Adding Cloudflare repository..."
+                mkdir -p --mode=0755 /usr/share/keyrings
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | \
+                    tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
+                
+                echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | \
+                    tee /etc/apt/sources.list.d/cloudflared.list >/dev/null
+                
+                apt-get update && apt-get install cloudflared -y
+                
+                echo ""
+                print_status "info" "📋 Tunnel Setup Instructions:"
+                echo -e "${CYAN}1.${NC} Create tunnel at ${BLUE}https://one.dash.cloudflare.com/${NC}"
+                echo -e "${CYAN}2.${NC} Copy the 'Connector' command"
+                echo -e "${CYAN}3.${NC} Paste it below\n"
+                
+                read -p "📝 Paste command/token: " cf_cmd
+                cf_cmd=${cf_cmd/sudo /}
+
+                if [[ "$cf_cmd" == *"cloudflared"* ]]; then
+                    print_status "info" "Configuring tunnel..."
+                    eval "$cf_cmd"
+                    print_status "success" "Tunnel activated"
+                elif [[ -n "$cf_cmd" ]]; then
+                    print_status "info" "Installing service token..."
+                    cloudflared service install "$cf_cmd"
+                    print_status "success" "Tunnel service installed"
+                else
+                    print_status "error" "No input provided"
+                fi
+                read -p "🔄 Press Enter..."
+                ;;
+            2)
+                echo ""
+                print_status "warning" "⚠️  CLOUDFLARED REMOVAL"
+                read -p "Type 'CONFIRM' to proceed: " confirm
+                if [[ "$confirm" == "CONFIRM" ]]; then
+                    print_status "info" "Stopping service..."
+                    systemctl stop cloudflared
+                    systemctl disable cloudflared
+                    
+                    print_status "info" "Removing package..."
+                    apt-get remove cloudflared -y
+                    apt-get purge cloudflared -y
+                    
+                    rm -rf /etc/cloudflared
+                    rm -f /etc/apt/sources.list.d/cloudflared.list
+                    
+                    print_status "success" "Cloudflared uninstalled"
+                else
+                    print_status "info" "Removal cancelled"
+                fi
+                read -p "🔄 Press Enter..."
+                ;;
+            0) return ;;
+            *) print_status "error" "Invalid selection"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- ADDON MANAGEMENT ---
+menu_addons() {
+    while true; do
+        header
+        print_header "🎨 ADDON MARKETPLACE" "$PURPLE"
+        draw_sub
+        print_section "🎭 THEMES & APPEARANCE"
+        print_option "1" "Recolor Theme" "🎨"
+        print_option "2" "Sidebar Theme" "📐"
+        print_option "3" "Server Backgrounds" "🖼️"
+        print_option "4" "Euphoria Theme" "🌈"
+        
+        draw_sub
+        print_section "⚙️  UTILITIES & TOOLS"
+        print_option "5" "MC Tools (Editor)" "🛠️"
+        print_option "6" "MC Logs (Live Console)" "📜"
+        print_option "7" "Player Listing" "👥"
+        print_option "8" "Votifier Tester" "📨"
+        print_option "9" "Database Editor" "🗃️"
+        print_option "10" "Subdomains Manager" "🌐"
+        
+        draw_sub
+        print_option "0" "Return to Menu" "↩️" "$RED"
+        draw_footer
+        echo -ne "${CYAN}🛍️  Select addon [0-10]: ${NC}"
+        read -r opt
+
+        case $opt in
+            1) install_bp "Recolor Theme" "recolor.blueprint" ;;
+            2) install_bp "Sidebar Theme" "sidebar.blueprint" ;;
+            3) install_bp "Server Backgrounds" "serverbackgrounds.blueprint" ;;
+            4) install_bp "Euphoria Theme" "euphoriatheme.blueprint" ;;
+            5) install_bp "MC Tools" "mctools.blueprint" ;;
+            6) install_bp "MC Logs" "mclogs.blueprint" ;;
+            7) install_bp "Player Listing" "playerlisting.blueprint" ;;
+            8) install_bp "Votifier Tester" "votifiertester.blueprint" ;;
+            9) install_bp "Database Editor" "dbedit.blueprint" ;;
+            10) install_bp "Subdomains Manager" "subdomains.blueprint" ;;
+            0) return ;;
+            *) print_status "error" "Invalid selection"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- BLUEPRINT SYSTEM MENU ---
+menu_blueprint() {
+    while true; do
+        header
+        print_header "🧩 BLUEPRINT EXTENSION SYSTEM" "$CYAN"
+        draw_sub
+        print_option "1" "Install Framework" "🔧" "$PURPLE"
+        print_option "2" "Browse Addon Store" "🛍️" "$GREEN"
+        print_option "3" "Update All Extensions" "🔄"
+        print_option "4" "Toggle Development Mode" "👨‍💻"
+        draw_sub
+        print_option "5" "Remove Extension" "🗑️" "$ORANGE"
+        print_option "6" "Uninstall Framework" "⚠️" "$RED"
+        draw_sub
+        print_option "0" "Return to Main Menu" "↩️" "$RED"
+        draw_footer
+        echo -ne "${CYAN}🛠️  Select option [0-6]: ${NC}"
+        read -r opt
+        
+        case $opt in
+            1) 
+                print_status "info" "Downloading Blueprint installer..."
+                cd "$PANEL_DIR" || exit
+                rm -f blueprint-installer.sh
+                if wget -q --show-progress "$BASE_URL/blueprint-installer.sh"; then
+                    bash blueprint-installer.sh
+                    rm blueprint-installer.sh
+                    print_status "success" "Framework installed"
+                else
+                    print_status "error" "Download failed"
+                fi
+                read -p "🔄 Press Enter..."
+                ;;
+            2) menu_addons ;;
+            3) 
+                cd "$PANEL_DIR" && blueprint -upgrade
+                print_status "success" "Extensions updated"
+                read -p "🔄 Press Enter..."
+                ;;
+            4) 
+                cd "$PANEL_DIR" && sed -i 's/APP_ENV=production/APP_ENV=local/g' .env
+                print_status "success" "Development mode enabled"
+                sleep 1
+                ;;
+            5) 
+                echo ""
+                print_status "info" "Enter extension identifier to remove:"
+                read -p "📝 Identifier: " identifier
+                if [[ -n "$identifier" ]]; then
+                    cd "$PANEL_DIR" && blueprint -remove "$identifier"
+                    print_status "success" "Extension removed"
+                fi
+                read -p "🔄 Press Enter..."
+                ;;
+            6) 
+                echo ""
+                print_status "warning" "⚠️  FRAMEWORK REMOVAL"
+                read -p "Type 'DELETE' to confirm: " confirm
+                if [[ "$confirm" == "DELETE" ]]; then
+                    rm -rf /usr/local/bin/blueprint "$PANEL_DIR/blueprint"
+                    print_status "success" "Blueprint framework removed"
+                else
+                    print_status "info" "Operation cancelled"
+                fi
+                read -p "🔄 Press Enter..."
+                ;;
+            0) return ;;
+            *) print_status "error" "Invalid selection"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- PANEL INSTALLATION FUNCTIONS ---
+install_panel() {
+    local name="$1"
+    local installer_url="$2"
+    local color="$3"
+    
+    header
+    print_header "🚀 INSTALLING: $name" "$color"
+    draw_sub
+    print_status "info" "Downloading installer..."
+    echo -e "${GRAY}Source: $installer_url${NC}"
+    echo ""
+    
+    if bash <(curl -s "$installer_url"); then
+        print_status "success" "$name installation completed"
+    else
+        print_status "error" "Installation failed"
+    fi
+    
+    read -p "🔄 Press Enter to continue..."
+}
+
+menu_pufferpanel() {
+    install_panel "PufferPanel" \
+        "https://raw.githubusercontent.com/kiruthik123/pufferpanel/main/Install.sh" \
+        "$ORANGE"
+}
+
+menu_mythicaldash() {
+    install_panel "MythicalDash" \
+        "https://raw.githubusercontent.com/kiruthik123/mythicaldash/main/install.sh" \
+        "$PURPLE"
+}
+
+menu_skyport_panel() {
+    install_panel "Skyport Panel" \
+        "https://raw.githubusercontent.com/kiruthik123/skyport/main/install.sh" \
+        "$CYAN"
+}
+
+menu_pterodactyl_install() {
+    while true; do
+        header
+        print_header "🦖 PTERODACTYL MANAGEMENT" "$YELLOW"
+        draw_sub
+        print_option "1" "Install Panel & Wings (Hybrid)" "🚀"
+        print_option "2" "Blueprint & Addons Manager" "🧩" "$CYAN"
+        draw_sub
+        print_option "3" "Uninstall Pterodactyl" "🗑️" "$RED"
+        draw_sub
+        print_option "0" "Return to Hub" "↩️" "$GRAY"
+        draw_footer
+        echo -ne "${CYAN}🛠️  Select option [0-3]: ${NC}"
+        read -r opt
+        
+        case $opt in
+            1) 
+                print_status "info" "Starting hybrid installer..."
+                bash <(curl -s "$INSTALLER_URL")
+                read -p "🔄 Press Enter..."
+                ;;
+            2) menu_blueprint ;;
+            3) 
+                echo ""
+                print_status "warning" "⚠️  PTERODACTYL REMOVAL"
+                read -p "Type 'DELETE ALL' to confirm: " confirm
+                if [[ "$confirm" == "DELETE ALL" ]]; then
+                    rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings
+                    print_status "success" "Pterodactyl removed"
+                fi
+                sleep 1
+                ;;
+            0) return ;;
+            *) print_status "error" "Invalid selection"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- PANEL INSTALLATION HUB ---
+menu_panel_installation_hub() {
+    while true; do
+        header
+        print_header "🏢 PANEL INSTALLATION HUB" "$ORANGE"
+        draw_sub
+        print_section "🎮 GAME SERVER PANELS"
+        print_option "1" "Pterodactyl Panel" "🦖" "$YELLOW"
+        print_option "2" "PufferPanel" "🐡" "$YELLOW"
+        
+        draw_sub
+        print_section "🌐 WEB HOSTING PANELS"
+        print_option "3" "MythicalDash Panel" "✨" "$YELLOW"
+        print_option "4" "Skyport Panel" "🛰️" "$YELLOW"
+        
+        draw_sub
+        print_option "0" "Return to Main Menu" "↩️" "$RED"
+        draw_footer
+        echo -ne "${CYAN}🏗️  Select panel to install [0-4]: ${NC}"
+        read -r hub_opt
+
+        case $hub_opt in
+            1) menu_pterodactyl_install ;;
+            2) menu_pufferpanel ;;
+            3) menu_mythicaldash ;;
+            4) menu_skyport_panel ;;
+            0) return ;;
+            *) print_status "error" "Invalid selection"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- SYSTEM TOOLBOX ---
+menu_toolbox() {
+    while true; do
+        header
+        print_header "🧰 SYSTEM TOOLBOX" "$MAGENTA"
+        draw_sub
+        print_section "📊 MONITORING & OPTIMIZATION"
+        print_option "1" "System Monitor" "📈"
+        print_option "2" "Add 2GB Swap Memory" "💾"
+        print_option "3" "Network Speed Test" "🌐"
+        print_option "4" "Configure Firewall" "🛡️"
+        
+        draw_sub
+        print_section "🔧 MAINTENANCE & SECURITY"
+        print_option "5" "Database Backup" "💾"
+        print_option "6" "Install SSL Certificate" "🔒"
+        print_option "9" "Enable Root Access" "🔑" "$GREEN"
+        print_option "10" "SSH Web Terminal" "💻" "$GREEN"
+        
+        draw_sub
+        print_section "🔗 NETWORK SERVICES"
+        print_option "7" "Tailscale VPN Manager" "🔐" "$ORANGE"
+        print_option "8" "Cloudflare Tunnel Manager" "☁️" "$ORANGE"
+        
+        draw_sub
+        print_option "0" "Return to Main Menu" "↩️" "$RED"
+        draw_footer
+        echo -ne "${CYAN}🛠️  Select tool [0-10]: ${NC}"
+        read -r opt
+        
+        case $opt in
+            1) 
+                header
+                print_header "📊 SYSTEM METRICS" "$CYAN"
+                draw_sub
+                echo -e "${WHITE}Memory Usage:${NC}"
+                free -h | grep Mem
+                echo -e "\n${WHITE}Disk Usage:${NC}"
+                df -h / | awk 'NR==2 {printf "Used: %s/%s (%s)\n", $3, $2, $5}'
+                echo -e "\n${WHITE}Load Average:${NC}"
+                uptime | awk -F'load average:' '{print $2}'
+                read -p "🔄 Press Enter..."
+                ;;
+            2) 
+                print_status "info" "Configuring swap memory..."
+                fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+                echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+                print_status "success" "2GB swap memory added"
+                sleep 1
+                ;;
+            3) 
+                apt-get install speedtest-cli -y -qq
+                print_status "info" "Running speed test..."
+                speedtest-cli --simple
+                read -p "🔄 Press Enter..."
+                ;;
+            4) 
+                apt install ufw -y -qq
+                ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw allow 8080 && ufw allow 2022 && ufw allow 5656
+                echo "y" | ufw enable
+                print_status "success" "Firewall configured with essential ports"
+                sleep 1
+                ;;
+            5) 
+                mysqldump -u root -p pterodactyl > "/root/backup_$(date +%F_%H-%M).sql"
+                print_status "success" "Backup saved to /root/backup_$(date +%F_%H-%M).sql"
+                read -p "🔄 Press Enter..."
+                ;;
+            6) 
+                apt install certbot -y -qq
+                echo ""
+                read -p "🌐 Enter domain name: " DOMAIN
+                certbot certonly --standalone -d "$DOMAIN"
+                print_status "success" "SSL certificate installed"
+                read -p "🔄 Press Enter..."
+                ;;
+            7) menu_tailscale ;;
+            8) menu_cloudflare ;;
+            9) 
+                echo -e "${CYAN}🔑 Setting root password...${NC}"
+                passwd root
+                sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+                systemctl restart ssh
+                print_status "success" "Root access enabled"
+                read -p "🔄 Press Enter..."
+                ;;
+            10) 
+                curl -sSf https://sshx.io/get | sh
+                echo ""
+                sshx
+                read -p "🔄 Press Enter..."
+                ;;
+            0) return ;;
+            *) print_status "error" "Invalid selection"; sleep 0.5 ;;
+        esac
+    done
+}
+
+# --- MAIN MENU ---
+while true; do
+    header
+    print_header "🏠 MAIN CONTROL PANEL" "$GREEN"
+    draw_sub
+    print_section "🚀 DEPLOYMENT"
+    print_option "1" "Panel Installation Hub" "🏢" "$YELLOW"
+    
+    draw_sub
+    print_section "⚙️  MANAGEMENT"
+    print_option "2" "Pterodactyl Addon Manager" "🧩" "$CYAN"
+    print_option "3" "System Toolbox" "🧰" "$MAGENTA"
+    
+    draw_sub
+    print_section "🔚 EXIT"
+    print_option "0" "Exit Management Suite" "🚪" "$GRAY"
+    
+    draw_footer
+    echo -ne "${CYAN}🎯 Select action [0-3]: ${NC}"
+    read -r choice
+
+    case $choice in
+        1) menu_panel_installation_hub ;;
+        2) menu_blueprint ;;
+        3) menu_toolbox ;;
+        0) 
+            clear
+            echo -e "${GREEN}Thank you for using KS Hosting Management Suite${NC}"
+            echo -e "${GRAY}Goodbye! 👋${NC}"
+            exit 0
+            ;;
+        *) print_status "error" "Invalid selection"; sleep 0.5 ;;
+    esac
+done
