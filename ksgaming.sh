@@ -2,7 +2,7 @@
 
 # =========================================================
 #   KS HOSTING BY KSGAMING - FINAL STABLE EDITION
-#   Fixes 404/HTML errors by using Official GitHub Installer
+#   Focused on multi-panel installation and general server tools.
 # =========================================================
 
 # --- GITHUB CONFIGURATION ---
@@ -13,7 +13,7 @@ GH_BRANCH="main"
 # URL for downloading Blueprints (Addons)
 BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
 
-# URL for installing Panel/Wings (Your Custom Repo)
+# URL for installing Pterodactyl Panel/Wings (Your Custom Repo)
 INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
 
 # --- DIRECTORIES ---
@@ -82,7 +82,7 @@ install_bp() {
     
     if ! command -v blueprint &> /dev/null; then
         error "Blueprint framework is missing."
-        echo -e "${GREY}Please go to Menu 4 -> Option 1 first.${NC}"
+        echo -e "${GREY}Please go to the Blueprint menu first.${NC}"
         read -p "Press Enter..."
         return
     fi
@@ -296,7 +296,7 @@ uninstall_framework() {
 }
 
 # =========================================================
-#   MENUS
+#   PANEL-SPECIFIC MENUS (KEPT FOR INSTALLATION)
 # =========================================================
 
 menu_addons() {
@@ -345,7 +345,7 @@ menu_addons() {
 menu_blueprint() {
     while true; do
         header
-        print_c "BLUEPRINT SYSTEM" "$CYAN"
+        print_c "BLUEPRINT SYSTEM (PTERODACTYL)" "$CYAN"
         draw_sub
         print_opt "1" "Install Framework (Custom)" "$PINK"
         print_opt "2" "Open KS Addon Store" "$GREEN"
@@ -386,61 +386,15 @@ menu_blueprint() {
     done
 }
 
-menu_panel() {
-    while true; do
-        header
-        print_c "PTERODACTYL PANEL MANAGEMENT" "$YELLOW"
-        draw_sub
-        print_opt "1" "Install Panel (Your Repo)"
-        print_opt "2" "Create Admin User"
-        print_opt "3" "Clear Cache"
-        print_opt "4" "Reset Permissions"
-        print_opt "0" "Back" "$RED"
-        draw_bar
-        echo -ne "${CYAN}  Select: ${NC}"
-        read opt
-        case $opt in
-            1) echo -e "${YELLOW}Running KS Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
-            2) cd "$PANEL_DIR" && php artisan p:user:make; read -p "Press Enter..." ;;
-            3) cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear; success "Cleared."; sleep 0.5 ;;
-            4) chown -R www-data:www-data "$PANEL_DIR"/*; success "Fixed."; sleep 0.5 ;;
-            0) return ;;
-            *) error "Invalid"; sleep 0.5 ;;
-        esac
-    done
-}
-
-menu_wings() {
-    while true; do
-        header
-        print_c "WINGS MANAGEMENT" "$YELLOW"
-        draw_sub
-        print_opt "1" "Install Wings (Your Repo)"
-        print_opt "2" "Auto-Configure (Paste Token)"
-        print_opt "3" "Restart Wings"
-        print_opt "0" "Back" "$RED"
-        draw_bar
-        echo -ne "${CYAN}  Select: ${NC}"
-        read opt
-        case $opt in
-            1) echo -e "${YELLOW}Running KS Wings Installer...${NC}"; bash <(curl -s $INSTALLER_URL); read -p "Press Enter..." ;;
-            2) echo ""; echo -e "${YELLOW}Paste Command:${NC}"; read -r CMD; eval "$CMD"; systemctl enable --now wings; success "Started."; sleep 0.5 ;;
-            3) systemctl restart wings; success "Wings Restarted."; sleep 0.5 ;;
-            0) return ;;
-            *) error "Invalid"; sleep 0.5 ;;
-        esac
-    done
-}
-
-# --- NEW PANEL INSTALLATION FUNCTIONS ---
+# --- Panel-Specific Installation Functions ---
 
 menu_pufferpanel() {
     local PUFFER_INSTALLER="https://raw.githubusercontent.com/kiruthik123/pufferpanel/main/Install.sh"
 
     header
-    print_c "PUFFER PANEL INSTALLATION" "$ORANGE"
+    print_c "INSTALL PUFFERPANEL" "$ORANGE"
     draw_sub
-    echo -e "${YELLOW}This will install PufferPanel using your script:$NC"
+    echo -e "${YELLOW}This will install PufferPanel using your custom script:$NC"
     echo -e "${GREY}$PUFFER_INSTALLER${NC}"
     echo ""
     read -p "Type 'yes' to proceed with installation: " c
@@ -459,13 +413,12 @@ menu_pufferpanel() {
 }
 
 menu_mythicaldash() {
-    # CORRECTED URL using raw content link
     local MYTHICAL_INSTALLER="https://raw.githubusercontent.com/kiruthik123/mythicaldash/main/install.sh"
     
     header
-    print_c "MYTHICALDASH INSTALLATION" "$ORANGE"
+    print_c "INSTALL MYTHICALDASH" "$ORANGE"
     draw_sub
-    echo -e "${YELLOW}This will install the MythicalDash panel using your script:$NC"
+    echo -e "${YELLOW}This will install the MythicalDash panel using your custom script:$NC"
     echo -e "${GREY}$MYTHICAL_INSTALLER${NC}"
     echo ""
     read -p "Type 'yes' to proceed with installation: " c
@@ -483,26 +436,36 @@ menu_mythicaldash() {
     read -p "Press Enter..."
 }
 
-menu_thirdparty() {
+menu_pterodactyl() {
     while true; do
         header
-        print_c "THIRD-PARTY PANELS" "$ORANGE"
+        print_c "INSTALL PTERODACTYL (PANEL + WINGS)" "$YELLOW"
         draw_sub
-        print_opt "1" "Install PufferPanel (Game Panel)" "$YELLOW"
-        print_opt "2" "Install MythicalDash (Web Panel)" "$YELLOW"
+        print_opt "1" "Install Panel and Wings (Hybrid)"
+        print_opt "2" "Pterodactyl Blueprint & Addons" "$CYAN"
         draw_sub
-        print_opt "0" "Back" "$RED"
+        print_opt "3" "Uninstall Pterodactyl" "$RED"
+        print_opt "0" "Back" "$GREY"
         draw_bar
         echo -ne "${CYAN}  Select: ${NC}"
         read opt
         case $opt in
-            1) menu_pufferpanel ;;
-            2) menu_mythicaldash ;;
+            1) 
+                echo -e "${YELLOW}Starting KS Hybrid Installer...${NC}"
+                bash <(curl -s $INSTALLER_URL)
+                read -p "Press Enter..."
+                ;;
+            2) menu_blueprint ;;
+            3) 
+                echo ""; echo -e "${RED}WARNING: DELETE ALL PTERODACTYL DATA?${NC}"; read -p "Type 'yes': " CONF
+                if [ "$CONF" == "yes" ]; then rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings; success "Deleted."; fi; sleep 1 ;;
             0) return ;;
             *) error "Invalid"; sleep 0.5 ;;
         esac
     done
 }
+
+# --- SYSTEM UTILITIES ---
 
 menu_toolbox() {
     while true; do
@@ -547,34 +510,25 @@ while true; do
     header
     print_c "MAIN MENU" "$GREEN"
     draw_sub
-    print_opt "1" "Pterodactyl Panel Manager"
-    print_opt "2" "Pterodactyl Wings Manager"
-    print_opt "3" "Install Both (Pterodactyl Hybrid)"
+    print_c "-- PANEL INSTALLATION --" "$YELLOW"
+    print_opt "1" "Install Pterodactyl Panel" 
+    print_opt "2" "Install PufferPanel" 
+    print_opt "3" "Install MythicalDash Panel"
     draw_sub
-    print_opt "4" "Blueprint & Addons" "$CYAN"
-    print_opt "5" "Third-Party Panel Installers" "$ORANGE"
-    print_opt "6" "System Toolbox" "$PINK"
+    print_opt "4" "Pterodactyl Addon Manager" "$CYAN"
+    print_opt "5" "System Toolbox" "$PINK"
     draw_sub
-    print_opt "7" "Uninstall Pterodactyl" "$RED"
     print_opt "0" "Exit" "$GREY"
     draw_bar
     echo -ne "${CYAN}  root@kshosting:~# ${NC}"
     read choice
 
     case $choice in
-        1) menu_panel ;;
-        2) menu_wings ;;
-        3) 
-            echo -e "${YELLOW}Starting KS Hybrid Installer...${NC}"
-            bash <(curl -s $INSTALLER_URL)
-            read -p "Press Enter..."
-            ;;
+        1) menu_pterodactyl ;;
+        2) menu_pufferpanel ;;
+        3) menu_mythicaldash ;;
         4) menu_blueprint ;;
-        5) menu_thirdparty ;;
-        6) menu_toolbox ;;
-        7) 
-            echo ""; echo -e "${RED}WARNING: DELETE ALL PTERODACTYL DATA?${NC}"; read -p "Type 'yes': " CONF
-            if [ "$CONF" == "yes" ]; then rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings; success "Deleted."; fi; sleep 1 ;;
+        5) menu_toolbox ;;
         0) clear; exit 0 ;;
         *) error "Invalid"; sleep 0.5 ;;
     esac
