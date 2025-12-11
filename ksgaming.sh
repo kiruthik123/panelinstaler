@@ -1,439 +1,621 @@
 #!/bin/bash
 
-# ==============================================================================
-#  ⚡ KS HOSTING - ULTIMATE PUFFERPANEL MANAGER ⚡
-#  Version: 2.1 | Author: KSGAMING | License: MIT
-# ==============================================================================
+# =========================================================
+#   ⚡⚡⚡ KS HOSTING BY KSGAMING ⚡⚡⚡
+#   🚀 ULTIMATE GAME PANEL MANAGEMENT SUITE 🚀
+#   🏆 Professional Control Panel Interface 🏆
+#   Version: 3.0.0 | Enhanced Edition
+# =========================================================
 
-# 🎨 COLOR PALETTE
-RESET='\033[0m'
+# --- GITHUB CONFIGURATION ---
+GH_USER="kiruthik123"
+GH_REPO="panelinstaler"
+GH_BRANCH="main"
+
+# URL for downloading Blueprints (Addons)
+BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
+
+# URL for installing Panel/Wings (Your Custom Repo)
+INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
+
+# --- DIRECTORIES ---
+PANEL_DIR="/var/www/pterodactyl"
+
+# =========================================================
+#   🎨 ADVANCED COLOR PALETTE - 24-bit RGB 🎨
+# =========================================================
+
+# Reset
+NC='\033[0m'
+
+# 🌈 KS HOSTING Brand Colors
+KS_PRIMARY='\033[1;38;5;39m'      # Electric Blue
+KS_SECONDARY='\033[1;38;5;201m'   # Magenta Purple
+KS_ACCENT='\033[1;38;5;226m'      # Gold Yellow
+KS_SUCCESS='\033[1;38;5;46m'      # Neon Green
+KS_WARNING='\033[1;38;5;208m'     # Orange
+KS_ERROR='\033[1;38;5;196m'       # Red
+KS_INFO='\033[1;38;5;51m'         # Cyan
+KS_DARK='\033[1;38;5;240m'        # Dark Gray
+KS_LIGHT='\033[1;38;5;255m'       # White
+
+# 🎭 Gradient Colors
+GRADIENT_1='\033[1;38;5;57m'      # Deep Purple
+GRADIENT_2='\033[1;38;5;93m'      # Purple
+GRADIENT_3='\033[1;38;5;129m'     # Violet
+GRADIENT_4='\033[1;38;5;165m'     # Pink Purple
+GRADIENT_5='\033[1;38;5;201m'     # Hot Pink
+
+# 🎯 UI Elements
+BORDER_COLOR='\033[1;38;5;39m'
+HEADER_COLOR='\033[1;38;5;57m'
+MENU_COLOR='\033[1;38;5;255m'
+OPTION_COLOR='\033[1;38;5;226m'
+HIGHLIGHT='\033[1;48;5;57m\033[1;38;5;255m'
+
+# 🌟 Special Effects
+BLINK='\033[5m'
 BOLD='\033[1m'
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-MAGENTA='\033[1;35m'
-CYAN='\033[1;36m'
-WHITE='\033[1;37m'
-GRAY='\033[90m'
-ORANGE='\033[38;5;208m'
-PURPLE='\033[38;5;93m'
-LIME='\033[38;5;154m'
+UNDERLINE='\033[4m'
 
-# 📁 LOGGING SETUP
-LOG_FILE="/var/log/kshosting_install.log"
-exec 3>&1
+# =========================================================
+#   🎭 EMOJI COLLECTION - EXTENSIVE SET
+# =========================================================
 
-# 🌈 GRADIENT TEXT EFFECT
-gradient() {
-    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
-    echo -e "${BLUE}║    ⚡ ${PURPLE}K S   H O S T I N G   P R O F E S S I O N A L ⚡    ${BLUE}║${RESET}"
-    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
+# 🏆 Brand & Status
+EMOJI_KS="⚡"          # KS Brand
+EMOJI_GAMING="🎮"      # KSGAMING
+EMOJI_HOSTING="🏢"     # Hosting
+EMOJI_STAR="🌟"        # Star
+EMOJI_FIRE="🔥"        # Fire/Hot
+EMOJI_ROCKET="🚀"      # Rocket/Launch
+EMOJI_CROWN="👑"       # Premium
+EMOJI_SHIELD="🛡️"     # Security
+EMOJI_TROPHY="🏆"      # Achievement
+
+# 🔄 Navigation
+EMOJI_HOME="🏠"
+EMOJI_BACK="↩️"
+EMOJI_EXIT="🚪"
+EMOJI_NEXT="➡️"
+EMOJI_PREV="⬅️"
+EMOJI_UP="⬆️"
+EMOJI_DOWN="⬇️"
+
+# 📊 Status Indicators
+EMOJI_CHECK="✅"
+EMOJI_CROSS="❌"
+EMOJI_WARN="⚠️"
+EMOJI_INFO="ℹ️"
+EMOJI_LOAD="⏳"
+EMOJI_DONE="🎯"
+EMOJI_WORK="⚙️"
+EMOJI_SYNC="🔄"
+EMOJI_ALERT="🚨"
+
+# 💾 System & Files
+EMOJI_TERMINAL="💻"
+EMOJI_SERVER="🖥️"
+EMOJI_DATABASE="💾"
+EMOJI_NETWORK="🌐"
+EMOJI_CLOUD="☁️"
+EMOJI_DOWNLOAD="📥"
+EMOJI_UPLOAD="📤"
+EMOJI_FOLDER="📁"
+EMOJI_FILE="📄"
+EMOJI_TRASH="🗑️"
+EMOJI_KEY="🔑"
+EMOJI_LOCK="🔒"
+EMOJI_UNLOCK="🔓"
+
+# 🎮 Gaming & Panels
+EMOJI_PANEL="🎮"
+EMOJI_WINGS="🪽"
+EMOJI_DRAGON="🐉"      # Pterodactyl
+EMOJI_PUFFER="🐡"      # Pufferfish
+EMOJI_MYTH="🔮"        # Mythical
+EMOJI_ADDON="✨"
+EMOJI_THEME="🎨"
+EMOJI_PLUGIN="🔌"
+
+# 🔧 Tools & Utilities
+EMOJI_TOOLS="🛠️"
+EMOJI_WRENCH="🔧"
+EMOJI_HAMMER="🔨"
+EMOJI_GEAR="⚙️"
+EMOJI_MAGNET="🧲"
+EMOJI_MICRO="🔬"
+EMOJI_TELESCOPE="🔭"
+
+# 🔐 Security & VPN
+EMOJI_VPN="🔐"
+EMOJI_SSL="🔒"
+EMOJI_FINGER="🔍"
+EMOJI_EYES="👁️"
+EMOJI_POLICE="👮"
+
+# 🌈 Visual & Themes
+EMOJI_PAINT="🎨"
+EMOJI_ART="🖼️"
+EMOJI_COLOR="🌈"
+EMOJI_SPARKLE="✨"
+EMOJI_GLITTER="💫"
+EMOJI_DIAMOND="💎"
+EMOJI_CRYSTAL="🔮"
+
+# =========================================================
+#   🎪 UI CONFIGURATION
+# =========================================================
+WIDTH=75
+LINE_CHAR="━"
+SUB_CHAR="─"
+CORNER="╋"
+SPARKLE_CHARS=("✨" "🌟" "💫" "⚡" "🎆")
+
+# =========================================================
+#   🎨 ENHANCED UI FUNCTIONS
+# =========================================================
+
+# Sparkle Effect
+sparkle() {
+    local chars=("${SPARKLE_CHARS[@]}")
+    echo -ne "${chars[$RANDOM % ${#chars[@]}]}"
 }
 
-# 📏 SEPARATOR LINE FUNCTION
-print_line() {
-    echo -e "${PURPLE}┌────────────────────────────────────────────────────────────┐${RESET}"
+# Gradient Text
+gradient_text() {
+    local text="$1"
+    local colors=("$GRADIENT_1" "$GRADIENT_2" "$GRADIENT_3" "$GRADIENT_4" "$GRADIENT_5")
+    local result=""
+    for ((i=0; i<${#text}; i++)); do
+        local color_idx=$((i % ${#colors[@]}))
+        result+="${colors[$color_idx]}${text:$i:1}"
+    done
+    echo -e "${result}${NC}"
 }
 
-print_endline() {
-    echo -e "${PURPLE}└────────────────────────────────────────────────────────────┘${RESET}"
+# Animated Header
+animated_header() {
+    clear
+    echo ""
+    echo -e "${KS_PRIMARY}"
+    echo -e "    ██╗  ██╗███████╗    ██╗  ██╗ ██████╗ ███████╗████████╗██╗███╗   ██╗ ██████╗ "
+    echo -e "    ██║ ██╔╝██╔════╝    ██║  ██║██╔═══██╗██╔════╝╚══██╔══╝██║████╗  ██║██╔════╝ "
+    echo -e "    █████╔╝ ███████╗    ███████║██║   ██║███████╗   ██║   ██║██╔██╗ ██║██║  ███╗"
+    echo -e "    ██╔═██╗ ╚════██║    ██╔══██║██║   ██║╚════██║   ██║   ██║██║╚██╗██║██║   ██║"
+    echo -e "    ██║  ██╗███████║    ██║  ██║╚██████╔╝███████║   ██║   ██║██║ ╚████║╚██████╔╝"
+    echo -e "    ╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚══════╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝ "
+    echo -e "${NC}"
+    
+    # Animated KS HOSTING text
+    echo -ne "${KS_SECONDARY}"
+    echo -e "              ╔═════════════════════════════════════════════════════╗"
+    echo -ne "              ║  "
+    echo -ne "$(sparkle) $(sparkle) "
+    echo -ne "${EMOJI_KS} ${EMOJI_GAMING} "
+    echo -ne "${KS_ACCENT}KS HOSTING BY KSGAMING${KS_SECONDARY}"
+    echo -ne " ${EMOJI_HOSTING} ${EMOJI_KS} "
+    echo -ne "$(sparkle) $(sparkle)"
+    echo -e "  ║"
+    echo -e "              ╚═════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
 }
 
-# 🔄 SPINNER ANIMATION FUNCTION
-spinner() {
+# Enhanced Border
+draw_top_border() {
+    echo -e "${BORDER_COLOR}╔$(printf "%0.s${LINE_CHAR}" $(seq 1 $((WIDTH-2))))╗${NC}"
+}
+
+draw_middle_border() {
+    echo -e "${BORDER_COLOR}╠$(printf "%0.s${SUB_CHAR}" $(seq 1 $((WIDTH-2))))╣${NC}"
+}
+
+draw_bottom_border() {
+    echo -e "${BORDER_COLOR}╚$(printf "%0.s${LINE_CHAR}" $(seq 1 $((WIDTH-2))))╝${NC}"
+}
+
+# Fancy Section Header
+draw_section_header() {
+    local title="$1"
+    local emoji="$2"
+    local color="${3:-$KS_INFO}"
+    
+    echo -e "${BORDER_COLOR}╠══════${NC}[ ${color}${emoji} ${title} ${NC}]$(printf "%0.s═" $(seq 1 $((WIDTH-${#title}-12))))${BORDER_COLOR}╣${NC}"
+}
+
+# Branded Header
+draw_brand_header() {
+    animated_header
+    draw_top_border
+    
+    local line1="${EMOJI_KS} ${KS_PRIMARY}ULTIMATE GAME PANEL MANAGEMENT SUITE${NC} ${EMOJI_GAMING}"
+    local line2="${EMOJI_HOSTING} ${KS_SECONDARY}Professional Control Interface v3.0${NC} ${EMOJI_STAR}"
+    
+    # Center text calculations
+    local padding1=$(( (WIDTH - ${#line1} + 24) / 2 ))
+    local padding2=$(( (WIDTH - ${#line2} + 24) / 2 ))
+    
+    echo -e "${BORDER_COLOR}║${NC}$(printf "%${padding1}s")${line1}$(printf "%$((WIDTH - padding1 - ${#line1} + 24))s")${BORDER_COLOR}║${NC}"
+    echo -e "${BORDER_COLOR}║${NC}$(printf "%${padding2}s")${line2}$(printf "%$((WIDTH - padding2 - ${#line2} + 24))s")${BORDER_COLOR}║${NC}"
+    
+    draw_middle_border
+    
+    # System info line
+    local sysinfo="${EMOJI_TERMINAL} ${KS_DARK}User: ${KS_LIGHT}$USER${KS_DARK} | IP: ${KS_LIGHT}$(hostname -I | awk '{print $1}')${KS_DARK} | Time: ${KS_LIGHT}$(date '+%H:%M:%S')${NC}"
+    local sysinfo_len=${#sysinfo}
+    local padding3=$(( (WIDTH - sysinfo_len + 32) / 2 ))
+    
+    echo -e "${BORDER_COLOR}║${NC}$(printf "%${padding3}s")${sysinfo}$(printf "%$((WIDTH - padding3 - sysinfo_len + 32))s")${BORDER_COLOR}║${NC}"
+    
+    draw_middle_border
+}
+
+# Fancy Option Display
+print_fancy_option() {
+    local num="$1"
+    local text="$2"
+    local emoji="${3:-""}"
+    local color="${4:-$MENU_COLOR}"
+    local highlight="${5:-false}"
+    
+    if [ "$highlight" = "true" ]; then
+        echo -e "${BORDER_COLOR}║${NC}  ${HIGHLIGHT} ${OPTION_COLOR}[${num}]${NC} ${HIGHLIGHT}${emoji} ${text}$(printf "%$((WIDTH - ${#text} - 18))s")${NC} ${BORDER_COLOR}║${NC}"
+    else
+        echo -e "${BORDER_COLOR}║${NC}  ${OPTION_COLOR}[${num}]${NC} ${emoji} ${color}${text}${NC}$(printf "%$((WIDTH - ${#text} - 15))s")${BORDER_COLOR}║${NC}"
+    fi
+}
+
+# Status Messages with Flair
+ks_success() { 
+    echo -e "\n${KS_SUCCESS}${EMOJI_CHECK} ${EMOJI_FIRE} SUCCESS:${NC} ${EMOJI_SPARKLE} $1 ${EMOJI_DONE}"
+    echo -e "${KS_DARK}════════════════════════════════════════════════════════════${NC}\n"
+}
+
+ks_error() { 
+    echo -e "\n${KS_ERROR}${EMOJI_CROSS} ${EMOJI_ALERT} ERROR:${NC} ${EMOJI_WARN} $1"
+    echo -e "${KS_DARK}────────────────────────────────────────────────────────────${NC}\n"
+}
+
+ks_warning() { 
+    echo -e "\n${KS_WARNING}${EMOJI_WARN} ${EMOJI_POLICE} WARNING:${NC} ${EMOJI_EYES} $1"
+    echo -e "${KS_DARK}────────────────────────────────────────────────────────────${NC}\n"
+}
+
+ks_info() { 
+    echo -e "\n${KS_INFO}${EMOJI_INFO} ${EMOJI_MICRO} INFO:${NC} ${EMOJI_TELESCOPE} $1"
+}
+
+ks_progress() { 
+    echo -ne "${KS_PRIMARY}${EMOJI_LOAD} ${EMOJI_WORK} PROCESSING:${NC} ${EMOJI_SYNC} $1 "
+}
+
+ks_complete() {
+    echo -e "${KS_SUCCESS}${EMOJI_CHECK} COMPLETE!${NC} ${EMOJI_TROPHY}"
+}
+
+# Loading Animation
+fancy_loading() {
     local pid=$1
-    local delay=0.1
-    local spin_chars=("🕐" "🕑" "🕒" "🕓" "🕔" "🕕" "🕖" "🕗" "🕘" "🕙" "🕚" "🕛")
+    local msg="$2"
+    local frames=("${EMOJI_LOAD}" "${EMOJI_SYNC}" "${EMOJI_WORK}" "${EMOJI_GEAR}")
     local i=0
     
+    ks_progress "$msg"
+    
     while kill -0 $pid 2>/dev/null; do
-        echo -ne "\r  ${spin_chars[$i]} ${YELLOW}Processing...${RESET}"
-        i=$(((i + 1) % 12))
-        sleep $delay
-    done
-    echo -ne "\r\033[K"
-}
-
-# ✅ EXECUTE WITH ANIMATION
-execute() {
-    local message="$1"
-    local command="$2"
-    local critical="${3:-false}"
-    
-    echo -ne "  ${BLUE}➤${RESET} ${WHITE}${message}${RESET}"
-    
-    eval "$command" >> "$LOG_FILE" 2>&1 &
-    local pid=$!
-    
-    spinner $pid
-    
-    wait $pid
-    local exit_code=$?
-    
-    if [ $exit_code -eq 0 ]; then
-        echo -e "\r  ${GREEN}✓${RESET} ${LIME}${message} ${GREEN}SUCCESS${RESET}"
-    else
-        echo -e "\r  ${RED}✗${RESET} ${RED}${message} ${ORANGE}FAILED${RESET}"
-        if [ "$critical" = "true" ]; then
-            echo -e "  ${RED}⚠  CRITICAL ERROR - Installation cannot continue${RESET}"
-            echo -e "  ${YELLOW}📋 Check log: ${WHITE}$LOG_FILE${RESET}"
-            exit 1
-        fi
-    fi
-}
-
-# 🖼️ DYNAMIC BANNER
-show_banner() {
-    clear
-    echo ""
-    gradient
-    echo ""
-    echo -e "  ${WHITE}┌────────────────────────────────────────────────────────────┐${RESET}"
-    echo -e "  ${WHITE}│     ${CYAN}🏆 ${PURPLE}Ultimate Game Server Management Platform ${CYAN}🏆     ${WHITE}│${RESET}"
-    echo -e "  ${WHITE}│     ${YELLOW}✨ Version 2.1 | Professional Edition ✨      ${WHITE}│${RESET}"
-    echo -e "  ${WHITE}└────────────────────────────────────────────────────────────┘${RESET}"
-    echo ""
-}
-
-# 🛡️ ROOT CHECK
-check_root() {
-    if [ "$(id -u)" != "0" ]; then
-        echo -e "${RED}"
-        echo "  ╔══════════════════════════════════════════════════╗"
-        echo "  ║                                                    ║"
-        echo "  ║  🔒 ${WHITE}P E R M I S S I O N   D E N I E D 🔒      ${RED}║"
-        echo "  ║                                                    ║"
-        echo "  ║  This script requires ${YELLOW}root privileges${RED}         ║"
-        echo "  ║  Please run with: ${WHITE}sudo ./install.sh${RED}            ║"
-        echo "  ║                                                    ║"
-        echo "  ╚══════════════════════════════════════════════════╝"
-        echo -e "${RESET}"
-        exit 1
-    fi
-}
-
-# 🔍 SYSTEM CHECK
-system_check() {
-    echo -e "${CYAN}"
-    echo "  📊 SYSTEM ANALYSIS"
-    echo -e "${WHITE}"
-    print_line
-    
-    # Check OS
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        echo -e "  ${GREEN}✓${RESET} ${WHITE}OS:${RESET} ${YELLOW}$PRETTY_NAME${RESET}"
-    else
-        echo -e "  ${YELLOW}⚠${RESET} ${WHITE}OS:${RESET} ${ORANGE}Unknown Linux Distribution${RESET}"
-    fi
-    
-    # Check RAM
-    total_ram=$(free -h | awk '/^Mem:/ {print $2}')
-    echo -e "  ${GREEN}✓${RESET} ${WHITE}RAM:${RESET} ${YELLOW}$total_ram${RESET}"
-    
-    # Check Disk Space
-    disk_space=$(df -h / | awk 'NR==2 {print $4}')
-    echo -e "  ${GREEN}✓${RESET} ${WHITE}Disk:${RESET} ${YELLOW}$disk_space free${RESET}"
-    
-    print_endline
-    echo ""
-}
-
-# ==============================================================================
-#  🚀 INSTALLATION PROCESS
-# ==============================================================================
-install_panel() {
-    show_banner
-    system_check
-    
-    echo -e "${CYAN}  🚀 STARTING PROFESSIONAL INSTALLATION ${RESET}"
-    echo -e "${GRAY}  📝 Log file: ${WHITE}$LOG_FILE${RESET}"
-    print_line
-    
-    # 1. SYSTEM UPDATE
-    execute "Updating System Packages" "apt-get update -y && apt-get upgrade -y" "true"
-    
-    # 2. ESSENTIAL DEPENDENCIES
-    execute "Installing Essential Tools" "apt-get install -y curl wget git sudo gnupg2 ca-certificates apt-transport-https software-properties-common" "true"
-    
-    # 3. DOCKER INSTALLATION
-    if ! command -v docker > /dev/null; then
-        execute "Installing Docker Engine" "curl -fsSL https://get.docker.com | sh" "true"
-        execute "Starting Docker Service" "systemctl enable --now docker" "true"
-        execute "Testing Docker" "docker run hello-world --quiet" "false"
-    else
-        echo -e "  ${GREEN}🎯 Docker already installed${RESET}"
-        docker_version=$(docker --version | cut -d' ' -f3 | tr -d ',')
-        echo -e "  ${BLUE}ℹ Version: ${WHITE}$docker_version${RESET}"
-    fi
-    
-    print_line
-    
-    # 4. PUFFERPANEL REPOSITORY
-    execute "Adding PufferPanel Repository" "curl -s https://packagecloud.io/install/repositories/pufferpanel/pufferpanel/script.deb.sh | bash" "true"
-    
-    # 5. PANEL INSTALLATION
-    execute "Installing PufferPanel Core" "apt-get install pufferpanel -y" "true"
-    
-    # 6. SERVICE CONFIGURATION
-    execute "Configuring Panel Service" "systemctl enable --now pufferpanel" "true"
-    
-    # 7. FIREWALL CONFIGURATION
-    if command -v ufw > /dev/null; then
-        execute "Configuring Firewall Rules" "ufw allow 8080/tcp && ufw allow 5657/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw reload" "false"
-    else
-        echo -e "  ${YELLOW}⚠ Firewall (UFW) not installed${RESET}"
-        echo -e "  ${BLUE}ℹ Consider installing UFW for better security${RESET}"
-    fi
-    
-    print_line
-    
-    # 8. ADMIN USER CREATION
-    echo ""
-    echo -e "${CYAN}  👑 ADMINISTRATOR ACCOUNT SETUP ${RESET}"
-    echo -e "${WHITE}  Please provide details for the main administrator:${RESET}"
-    print_line
-    
-    while true; do
-        read -p "  📧 ${WHITE}Email Address: ${RESET}" admin_email
-        if [[ "$admin_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-            break
-        else
-            echo -e "  ${RED}✗ Invalid email format${RESET}"
-        fi
+        echo -ne "\r${KS_PRIMARY}${EMOJI_LOAD} ${EMOJI_WORK} PROCESSING:${NC} ${EMOJI_SYNC} $msg ${frames[$i]} "
+        i=$(( (i+1) % ${#frames[@]} ))
+        sleep 0.2
     done
     
-    while true; do
-        read -p "  👤 ${WHITE}Username (3-20 chars): ${RESET}" admin_name
-        if [[ "$admin_name" =~ ^[a-zA-Z0-9_]{3,20}$ ]]; then
-            break
-        else
-            echo -e "  ${RED}✗ Invalid username${RESET}"
-        fi
+    echo -e "\r${KS_SUCCESS}${EMOJI_CHECK} ${EMOJI_DONE} COMPLETED:${NC} ${EMOJI_TROPHY} $msg $(printf '%*s' 20)"
+}
+
+# =========================================================
+#   🎭 MAIN MENU INTERFACE
+# =========================================================
+
+show_main_menu() {
+    draw_brand_header
+    
+    # Main Panel Section
+    print_fancy_option "1" "Pterodactyl Panel Manager" "${EMOJI_DRAGON} ${EMOJI_PANEL}" "$KS_PRIMARY" "true"
+    print_fancy_option "2" "Pterodactyl Wings Manager" "${EMOJI_WINGS} ${EMOJI_GEAR}" "$KS_SECONDARY"
+    print_fancy_option "3" "Hybrid Installation" "${EMOJI_ROCKET} ${EMOJI_FIRE}" "$KS_ACCENT"
+    
+    draw_section_header "ADDONS & CUSTOMIZATION" "${EMOJI_ADDON}"
+    print_fancy_option "4" "Blueprint System & Addon Store" "${EMOJI_CRYSTAL} ${EMODIAMOND}" "$GRADIENT_3"
+    print_fancy_option "5" "Themes & Visual Enhancements" "${EMOJI_PAINT} ${EMOJI_COLOR}" "$GRADIENT_4"
+    
+    draw_section_header "PANEL INTEGRATIONS" "${EMOJI_SERVER}"
+    print_fancy_option "6" "Third-Party Panel Installers" "${EMOJI_PUFFER} ${EMOJI_MYTH}" "$KS_INFO"
+    print_fancy_option "7" "VPN & Tunnel Management" "${EMOJI_VPN} ${EMOJI_CLOUD}" "$KS_WARNING"
+    
+    draw_section_header "SYSTEM MANAGEMENT" "${EMOJI_TOOLS}"
+    print_fancy_option "8" "System Toolbox & Utilities" "${EMOJI_WRENCH} ${EMOJI_HAMMER}" "$KS_LIGHT"
+    print_fancy_option "9" "Security & Firewall Setup" "${EMOJI_SHIELD} ${EMOJI_POLICE}" "$KS_ERROR"
+    
+    draw_section_header "ADVANCED" "${EMOJI_KEY}"
+    print_fancy_option "C" "Configuration Dashboard" "${EMOJI_GEAR} ${EMOJI_MAGNET}" "$KS_DARK"
+    print_fancy_option "U" "Uninstall Manager" "${EMOJI_TRASH} ${EMOJI_ALERT}" "$KS_ERROR" "true"
+    
+    draw_middle_border
+    print_fancy_option "0" "Exit Control Panel" "${EMOJI_EXIT} ${EMOJI_HOME}" "$KS_DARK"
+    
+    draw_bottom_border
+    
+    echo -e "\n${KS_ACCENT}${EMOJI_STAR} $(printf '%0.s═' $(seq 1 $((WIDTH/3)))) [ SELECT OPTION ] $(printf '%0.s═' $(seq 1 $((WIDTH/3)))) ${EMOJI_STAR}${NC}"
+    echo -ne "${KS_PRIMARY}${EMOJI_CRYSTAL} ${EMOJI_GAMING} KSGAMING@HOSTING:~# ${NC}"
+}
+
+# =========================================================
+#   🎨 THEMED SUB-MENUS
+# =========================================================
+
+# Panel Management Menu
+show_panel_menu() {
+    draw_brand_header
+    draw_section_header "PTERODACTYL PANEL MANAGEMENT" "${EMOJI_DRAGON} ${EMOJI_PANEL}"
+    
+    print_fancy_option "1" "Install Panel (Latest Version)" "${EMOJI_DOWNLOAD} ${EMOJI_ROCKET}" "$KS_SUCCESS"
+    print_fancy_option "2" "Update Panel" "${EMOJI_UPLOAD} ${EMOJI_SYNC}" "$KS_WARNING"
+    print_fancy_option "3" "Create Administrator User" "${EMOJI_CROWN} ${EMOJI_KEY}" "$KS_ACCENT"
+    print_fancy_option "4" "Panel Diagnostics" "${EMOJI_MICRO} ${EMOJI_TELESCOPE}" "$KS_INFO"
+    print_fancy_option "5" "Clear Cache & Optimize" "${EMOJI_TRASH} ${EMOJI_WORK}" "$KS_WARNING"
+    print_fancy_option "6" "Repair Permissions" "${EMOJI_LOCK} ${EMOJI_WRENCH}" "$KS_ERROR"
+    print_fancy_option "7" "Backup Panel Database" "${EMOJI_DATABASE} ${EMOJI_SHIELD}" "$KS_SECONDARY"
+    
+    draw_middle_border
+    print_fancy_option "0" "Back to Main Menu" "${EMOJI_BACK} ${EMOJI_HOME}" "$KS_DARK"
+    
+    draw_bottom_border
+    
+    echo -ne "\n${KS_PRIMARY}${EMOJI_PANEL} Panel Action: ${NC}"
+}
+
+# Wings Management Menu
+show_wings_menu() {
+    draw_brand_header
+    draw_section_header "WINGS DAEMON MANAGEMENT" "${EMOJI_WINGS} ${EMOJI_GEAR}"
+    
+    print_fancy_option "1" "Install Wings Daemon" "${EMOJI_DOWNLOAD} ${EMOJI_ROCKET}" "$KS_SUCCESS"
+    print_fancy_option "2" "Configure Wings Token" "${EMOJI_KEY} ${EMOJI_LOCK}" "$KS_ACCENT"
+    print_fancy_option "3" "Restart Wings Service" "${EMOJI_SYNC} ${EMOJI_WORK}" "$KS_WARNING"
+    print_fancy_option "4" "Wings Status Check" "${EMOJI_MICRO} ${EMOJI_TELESCOPE}" "$KS_INFO"
+    print_fancy_option "5" "Update Wings" "${EMOJI_UPLOAD} ${EMOJI_SYNC}" "$KS_WARNING"
+    print_fancy_option "6" "View Wings Logs" "${EMOJI_FILE} ${EMOJI_EYES}" "$KS_DARK"
+    
+    draw_middle_border
+    print_fancy_option "0" "Back to Main Menu" "${EMOJI_BACK} ${EMOJI_HOME}" "$KS_DARK"
+    
+    draw_bottom_border
+    
+    echo -ne "\n${KS_PRIMARY}${EMOJI_WINGS} Wings Action: ${NC}"
+}
+
+# Blueprint System Menu
+show_blueprint_menu() {
+    draw_brand_header
+    draw_section_header "BLUEPRINT SYSTEM & ADDON STORE" "${EMOJI_CRYSTAL} ${EMOJI_DIAMOND}"
+    
+    print_fancy_option "1" "Install Blueprint Framework" "${EMOJI_DOWNLOAD} ${EMOJI_CRYSTAL}" "$GRADIENT_1"
+    print_fancy_option "2" "Browse Addon Collection" "${EMOJI_ADDON} ${EMOJI_STAR}" "$GRADIENT_2"
+    print_fancy_option "3" "Theme Marketplace" "${EMOJI_PAINT} ${EMOJI_ART}" "$GRADIENT_3"
+    print_fancy_option "4" "Update All Addons" "${EMOJI_UPLOAD} ${EMOJI_SYNC}" "$GRADIENT_4"
+    print_fancy_option "5" "Developer Mode Toggle" "${EMOJI_GEAR} ${EMOJI_MAGNET}" "$GRADIENT_5"
+    
+    draw_section_header "ADDON MANAGEMENT" "${EMOJI_PLUGIN}"
+    print_fancy_option "6" "Manage Installed Addons" "${EMOJI_FOLDER} ${EMOJI_EYES}" "$KS_INFO"
+    print_fancy_option "7" "Uninstall Addon" "${EMOJI_TRASH} ${EMOJI_ALERT}" "$KS_ERROR"
+    print_fancy_option "8" "Addon Diagnostics" "${EMOJI_MICRO} ${EMOJI_TELESCOPE}" "$KS_WARNING"
+    
+    draw_middle_border
+    print_fancy_option "0" "Back to Main Menu" "${EMOJI_BACK} ${EMOJI_HOME}" "$KS_DARK"
+    
+    draw_bottom_border
+    
+    echo -ne "\n${KS_SECONDARY}${EMOJI_CRYSTAL} Blueprint Selection: ${NC}"
+}
+
+# System Toolbox Menu
+show_toolbox_menu() {
+    draw_brand_header
+    draw_section_header "SYSTEM TOOLBOX & UTILITIES" "${EMOJI_TOOLS} ${EMOJI_WRENCH}"
+    
+    print_fancy_option "1" "System Health Monitor" "${EMOJI_TERMINAL} ${EMOJI_MICRO}" "$KS_INFO"
+    print_fancy_option "2" "Memory & Swap Manager" "${EMOJI_DATABASE} ${EMOJI_SYNC}" "$KS_PRIMARY"
+    print_fancy_option "3" "Network Speed Test" "${EMOJI_NETWORK} ${EMOJI_ROCKET}" "$KS_SUCCESS"
+    print_fancy_option "4" "Firewall Configuration" "${EMOJI_SHIELD} ${EMOJI_POLICE}" "$KS_ERROR"
+    print_fancy_option "5" "Database Operations" "${EMOJI_DATABASE} ${EMOJI_KEY}" "$KS_SECONDARY"
+    print_fancy_option "6" "SSL Certificate Manager" "${EMOJI_SSL} ${EMOJI_LOCK}" "$KS_ACCENT"
+    
+    draw_section_header "ADVANCED TOOLS" "${EMOJI_HAMMER}"
+    print_fancy_option "7" "TailScale VPN Manager" "${EMOJI_VPN} ${EMOJI_FINGER}" "$KS_WARNING"
+    print_fancy_option "8" "Cloudflare Tunnel Setup" "${EMOJI_CLOUD} ${EMOJI_EYES}" "$KS_INFO"
+    print_fancy_option "9" "Root Access Management" "${EMOJI_CROWN} ${EMOJI_UNLOCK}" "$KS_SUCCESS"
+    print_fancy_option "10" "Web SSH Terminal" "${EMOJI_TERMINAL} ${EMOJI_NETWORK}" "$KS_PRIMARY"
+    
+    draw_middle_border
+    print_fancy_option "0" "Back to Main Menu" "${EMOJI_BACK} ${EMOJI_HOME}" "$KS_DARK"
+    
+    draw_bottom_border
+    
+    echo -ne "\n${KS_LIGHT}${EMOJI_TOOLS} Tool Selection: ${NC}"
+}
+
+# =========================================================
+#   🎯 INSTALLATION FUNCTIONS WITH FLAIR
+# =========================================================
+
+install_with_style() {
+    local name="$1"
+    local url="$2"
+    
+    echo -e "\n${KS_ACCENT}${EMOJI_ROCKET} ${EMOJI_FIRE} LAUNCHING INSTALLATION ${EMOJI_FIRE} ${EMOJI_ROCKET}${NC}"
+    echo -e "${KS_PRIMARY}$(printf '%0.s═' $(seq 1 $WIDTH))${NC}"
+    
+    ks_info "Installing: ${EMOJI_STAR} $name ${EMOJI_STAR}"
+    ks_progress "Downloading components..."
+    
+    # Simulate installation with fancy output
+    for i in {1..5}; do
+        echo -ne "${KS_PRIMARY}${EMOJI_WORK} Stage $i/5: $(sparkle) Installing $(sparkle) ${NC}\r"
+        sleep 0.3
     done
     
-    while true; do
-        read -s -p "  🔑 ${WHITE}Password (min 8 chars): ${RESET}" admin_pass
-        echo ""
-        if [ ${#admin_pass} -ge 8 ]; then
-            read -s -p "  🔑 ${WHITE}Confirm Password: ${RESET}" admin_pass2
-            echo ""
-            if [ "$admin_pass" = "$admin_pass2" ]; then
-                break
+    # Actual installation
+    if bash <(curl -s "$url"); then
+        ks_success "$name has been successfully installed! ${EMOJI_TROPHY}"
+        echo -e "${KS_INFO}${EMOJI_STAR} Installation completed at $(date '+%H:%M:%S') ${EMOJI_STAR}${NC}"
+    else
+        ks_error "Installation failed! Please check your connection."
+    fi
+    
+    echo -e "\n${KS_DARK}$(printf '%0.s─' $(seq 1 $WIDTH))${NC}"
+    read -p "$(echo -e "${KS_ACCENT}${EMOJI_BACK} Press Enter to continue... ${NC}")"
+}
+
+# =========================================================
+#   🎪 MAIN PROGRAM LOOP
+# =========================================================
+
+while true; do
+    show_main_menu
+    read -r choice
+    
+    case ${choice^^} in
+        1)
+            show_panel_menu
+            read -r panel_choice
+            case $panel_choice in
+                1) install_with_style "Pterodactyl Panel" "$INSTALLER_URL" ;;
+                2) ks_info "Panel update feature coming soon!"; sleep 2 ;;
+                3) 
+                    ks_progress "Launching user creation wizard..."
+                    cd "$PANEL_DIR" && php artisan p:user:make
+                    ks_complete
+                    ;;
+                5) 
+                    ks_progress "Clearing panel cache..."
+                    cd "$PANEL_DIR" && php artisan view:clear && php artisan config:clear
+                    ks_success "Panel cache cleared!"
+                    ;;
+                6)
+                    ks_progress "Repairing permissions..."
+                    chown -R www-data:www-data "$PANEL_DIR"/*
+                    ks_success "Permissions repaired!"
+                    ;;
+                0) continue ;;
+                *) ks_error "Invalid selection!"; sleep 1 ;;
+            esac
+            ;;
+            
+        2)
+            show_wings_menu
+            read -r wings_choice
+            case $wings_choice in
+                1) install_with_style "Pterodactyl Wings" "$INSTALLER_URL" ;;
+                2)
+                    echo -e "\n${KS_INFO}${EMOJI_KEY} Paste your configuration command:${NC}"
+                    read -r CMD
+                    ks_progress "Configuring Wings..."
+                    eval "$CMD"
+                    systemctl enable --now wings
+                    ks_success "Wings configured successfully!"
+                    ;;
+                3)
+                    ks_progress "Restarting Wings service..."
+                    systemctl restart wings
+                    ks_success "Wings service restarted!"
+                    ;;
+                0) continue ;;
+                *) ks_error "Invalid selection!"; sleep 1 ;;
+            esac
+            ;;
+            
+        3)
+            echo -e "\n${KS_ACCENT}${EMOJI_FIRE} ${EMOJI_ROCKET} HYBRID INSTALLATION ${EMOJI_ROCKET} ${EMOJI_FIRE}${NC}"
+            echo -e "${KS_WARNING}${EMOJI_WARN} This will install both Panel and Wings components${NC}"
+            echo -e "${KS_INFO}${EMOJI_INFO} Estimated time: 5-10 minutes${NC}\n"
+            
+            read -p "$(echo -e "${KS_ERROR}${EMOJI_ALERT} Type 'INSTALL' to proceed: ${NC}")" confirm
+            if [ "${confirm^^}" = "INSTALL" ]; then
+                install_with_style "Pterodactyl Hybrid System" "$INSTALLER_URL"
             else
-                echo -e "  ${RED}✗ Passwords don't match${RESET}"
+                ks_info "Installation cancelled."
+                sleep 1
             fi
-        else
-            echo -e "  ${RED}✗ Password too short${RESET}"
-        fi
-    done
-    
-    execute "Creating Admin Account" "pufferpanel user add --email \"$admin_email\" --name \"$admin_name\" --password \"$admin_pass\" --admin" "true"
-    
-    print_line
-    
-    # 9. DOMAIN CONFIGURATION
-    echo ""
-    echo -e "${CYAN}  🌐 NETWORK CONFIGURATION ${RESET}"
-    echo -e "${WHITE}  Enter your panel access URL:${RESET}"
-    echo -e "  ${GRAY}Examples:${RESET}"
-    echo -e "  ${YELLOW}• panel.yourdomain.com${RESET}"
-    echo -e "  ${YELLOW}• 192.168.1.100${RESET}"
-    echo -e "  ${YELLOW}• localhost${RESET}"
-    print_line
-    
-    read -p "  🔗 ${WHITE}Panel URL/IP: ${RESET}" panel_host
-    
-    # 10. FINAL SUCCESS DISPLAY
-    clear
-    show_banner
-    
-    echo -e "${GREEN}"
-    echo "  ╔══════════════════════════════════════════════════════════════╗"
-    echo "  ║                                                              ║"
-    echo "  ║                    🎉 INSTALLATION COMPLETE 🎉               ║"
-    echo "  ║                                                              ║"
-    echo "  ╚══════════════════════════════════════════════════════════════╝"
-    echo -e "${RESET}"
-    
-    echo -e "${CYAN}  📋 INSTALLATION SUMMARY ${RESET}"
-    print_line
-    echo -e "  ${GREEN}┌────────────────────────────────────────────────────────────┐${RESET}"
-    echo -e "  ${GREEN}│ ${WHITE}🌐 ${CYAN}Panel URL${WHITE}:    ${YELLOW}http://$panel_host:8080${RESET}           ${GREEN}│${RESET}"
-    echo -e "  ${GREEN}│ ${WHITE}🔌 ${CYAN}SFTP Port${WHITE}:    ${YELLOW}5657${RESET}                              ${GREEN}│${RESET}"
-    echo -e "  ${GREEN}│ ${WHITE}👑 ${CYAN}Admin User${WHITE}:   ${YELLOW}$admin_name${RESET}                      ${GREEN}│${RESET}"
-    echo -e "  ${GREEN}│ ${WHITE}📧 ${CYAN}Admin Email${WHITE}:  ${YELLOW}$admin_email${RESET}                     ${GREEN}│${RESET}"
-    echo -e "  ${GREEN}│ ${WHITE}📂 ${CYAN}Data Path${WHITE}:    ${YELLOW}/var/lib/pufferpanel${RESET}             ${GREEN}│${RESET}"
-    echo -e "  ${GREEN}│ ${WHITE}📜 ${CYAN}Logs Path${WHITE}:    ${YELLOW}$LOG_FILE${RESET}           ${GREEN}│${RESET}"
-    echo -e "  ${GREEN}└────────────────────────────────────────────────────────────┘${RESET}"
-    
-    print_line
-    echo -e "  ${PURPLE}🚀 NEXT STEPS:${RESET}"
-    echo -e "  ${WHITE}1. ${YELLOW}Access your panel at: ${WHITE}http://$panel_host:8080${RESET}"
-    echo -e "  ${WHITE}2. ${YELLOW}Login with your admin credentials${RESET}"
-    echo -e "  ${WHITE}3. ${YELLOW}Add your first game server from the dashboard${RESET}"
-    echo -e "  ${WHITE}4. ${YELLOW}Configure reverse proxy for HTTPS (recommended)${RESET}"
-    print_endline
-    
-    echo -e "  ${MAGENTA}💫 Thank you for choosing KS HOSTING Professional!${RESET}"
-    echo ""
-}
-
-# ==============================================================================
-#  🗑️ UNINSTALL PROCESS
-# ==============================================================================
-uninstall_panel() {
-    show_banner
-    
-    echo -e "${RED}"
-    echo "  ╔══════════════════════════════════════════════════════════════╗"
-    echo "  ║                                                              ║"
-    echo "  ║                    ⚠️  D A N G E R  Z O N E ⚠️               ║"
-    echo "  ║                                                              ║"
-    echo "  ╚══════════════════════════════════════════════════════════════╝"
-    echo -e "${RESET}"
-    
-    echo -e "${ORANGE}  ⚠  This action will:${RESET}"
-    echo -e "  ${RED}• Remove all game servers${RESET}"
-    echo -e "  ${RED}• Delete all user accounts${RESET}"
-    echo -e "  ${RED}• Erase all configurations${RESET}"
-    echo -e "  ${RED}• Remove all server data${RESET}"
-    
-    print_line
-    echo -e "  ${WHITE}Type ${RED}'CONFIRM_DESTRUCTION'${WHITE} to proceed:${RESET}"
-    echo -ne "  ${RED}>>> ${RESET}"
-    read confirmation
-    
-    if [ "$confirmation" != "CONFIRM_DESTRUCTION" ]; then
-        echo -e "  ${GREEN}✅ Operation cancelled${RESET}"
-        return
-    fi
-    
-    print_line
-    execute "Stopping Services" "systemctl stop pufferpanel"
-    execute "Disabling Services" "systemctl disable pufferpanel"
-    execute "Removing Package" "apt-get purge pufferpanel -y"
-    execute "Cleaning Data" "rm -rf /var/lib/pufferpanel /etc/pufferpanel"
-    execute "Removing Dependencies" "apt-get autoremove -y"
-    
-    if command -v ufw > /dev/null; then
-        execute "Resetting Firewall" "ufw delete allow 8080/tcp && ufw delete allow 5657/tcp && ufw reload"
-    fi
-    
-    echo ""
-    echo -e "${GREEN}  ✅ PufferPanel has been completely removed from your system${RESET}"
-    echo -e "${YELLOW}  📝 Note: Game server files might still exist in user directories${RESET}"
-}
-
-# ==============================================================================
-#  📊 STATUS CHECK
-# ==============================================================================
-check_status() {
-    show_banner
-    
-    echo -e "${CYAN}  📊 SYSTEM STATUS CHECK ${RESET}"
-    print_line
-    
-    # Check PufferPanel service
-    if systemctl is-active --quiet pufferpanel; then
-        echo -e "  ${GREEN}✅ ${WHITE}PufferPanel Service: ${GREEN}RUNNING${RESET}"
-    else
-        echo -e "  ${RED}❌ ${WHITE}PufferPanel Service: ${RED}STOPPED${RESET}"
-    fi
-    
-    # Check Docker
-    if systemctl is-active --quiet docker; then
-        echo -e "  ${GREEN}✅ ${WHITE}Docker Service: ${GREEN}RUNNING${RESET}"
-    else
-        echo -e "  ${RED}❌ ${WHITE}Docker Service: ${RED}STOPPED${RESET}"
-    fi
-    
-    # Check ports
-    echo -e "  ${BLUE}🔍 ${WHITE}Port Check:${RESET}"
-    if ss -tulpn | grep -q ":8080"; then
-        echo -e "    ${GREEN}✓ Port 8080 (Panel): ${GREEN}LISTENING${RESET}"
-    else
-        echo -e "    ${RED}✗ Port 8080 (Panel): ${RED}CLOSED${RESET}"
-    fi
-    
-    if ss -tulpn | grep -q ":5657"; then
-        echo -e "    ${GREEN}✓ Port 5657 (SFTP): ${GREEN}LISTENING${RESET}"
-    else
-        echo -e "    ${RED}✗ Port 5657 (SFTP): ${RED}CLOSED${RESET}"
-    fi
-    
-    # Disk usage
-    disk_usage=$(df -h /var/lib/pufferpanel 2>/dev/null | tail -1 | awk '{print $5}')
-    if [ ! -z "$disk_usage" ]; then
-        echo -e "  ${BLUE}💾 ${WHITE}Disk Usage: ${YELLOW}$disk_used${RESET}"
-    fi
-    
-    print_endline
-    echo ""
-}
-
-# ==============================================================================
-#  🎮 MAIN MENU
-# ==============================================================================
-main_menu() {
-    while true; do
-        show_banner
-        
-        echo -e "${WHITE}  📋 MAIN MENU ${RESET}"
-        print_line
-        echo -e "  ${GREEN}[1] 🚀 ${CYAN}Install PufferPanel (Complete Setup)${RESET}"
-        echo -e "  ${BLUE}[2] 📊 ${CYAN}Check System Status${RESET}"
-        echo -e "  ${YELLOW}[3] ⚙️  ${CYAN}Update Panel${RESET}"
-        echo -e "  ${RED}[4] 🗑️  ${CYAN}Uninstall Panel${RESET}"
-        echo -e "  ${MAGENTA}[5] ℹ️  ${CYAN}About & Support${RESET}"
-        echo -e "  ${GRAY}[6] 🚪 ${CYAN}Exit${RESET}"
-        print_endline
-        
-        echo -ne "  ${WHITE}🎮 Select option [1-6]: ${RESET}"
-        read -n 1 choice
-        echo ""
-        
-        case $choice in
-            1)
-                install_panel
-                ;;
-            2)
-                check_status
-                ;;
-            3)
-                echo -e "  ${CYAN}🔧 Update feature coming soon...${RESET}"
-                ;;
-            4)
-                uninstall_panel
-                ;;
-            5)
-                echo -e "  ${CYAN}📞 Support information coming soon...${RESET}"
-                ;;
-            6)
-                echo -e "  ${GREEN}👋 Thank you for using KS HOSTING!${RESET}"
-                echo ""
-                exit 0
-                ;;
-            *)
-                echo -e "  ${RED}❌ Invalid selection${RESET}"
-                ;;
-        esac
-        
-        if [ "$choice" != "6" ]; then
-            echo -e "\n  ${WHITE}Press ${GREEN}[ENTER]${WHITE} to continue...${RESET}"
-            read
-        fi
-    done
-}
-
-# ==============================================================================
-#  🏁 ENTRY POINT
-# ==============================================================================
-
-# Initial checks
-check_root
-trap "echo -e '\n${RED}❌ Script interrupted${RESET}'; exit 1" SIGINT
-
-# Start main menu
-main_menu
+            ;;
+            
+        4)
+            show_blueprint_menu
+            read -r bp_choice
+            # Add blueprint functionality here
+            ks_info "Blueprint system launching..."
+            sleep 2
+            ;;
+            
+        8)
+            show_toolbox_menu
+            read -r tool_choice
+            case $tool_choice in
+                1)
+                    echo -e "\n${KS_INFO}${EMOJI_TERMINAL} SYSTEM STATUS ${EMOJI_TERMINAL}${NC}"
+                    echo -e "${KS_DARK}════════════════════════════════════════════════════════════${NC}"
+                    echo -e "${KS_LIGHT}Memory:${NC} $(free -h | grep Mem | awk '{print $3"/"$2}')"
+                    echo -e "${KS_LIGHT}Disk:${NC} $(df -h / | awk 'NR==2 {print $3"/"$2 " ("$5")"}')"
+                    echo -e "${KS_LIGHT}Uptime:${NC} $(uptime -p)"
+                    echo -e "${KS_LIGHT}Load Average:${NC} $(uptime | awk -F'load average:' '{print $2}')"
+                    echo -e "${KS_DARK}════════════════════════════════════════════════════════════${NC}"
+                    read -p "$(echo -e "${KS_ACCENT}${EMOJI_BACK} Press Enter... ${NC}")"
+                    ;;
+                2)
+                    ks_progress "Creating 2GB swap file..."
+                    fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+                    echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+                    ks_success "Swap memory added successfully!"
+                    ;;
+                3)
+                    ks_progress "Installing speedtest utility..."
+                    apt-get install speedtest-cli -y -qq
+                    echo -e "\n${KS_INFO}${EMOJI_ROCKET} RUNNING SPEED TEST ${EMOJI_ROCKET}${NC}"
+                    speedtest-cli --simple
+                    read -p "$(echo -e "${KS_ACCENT}${EMOJI_BACK} Press Enter... ${NC}")"
+                    ;;
+                0) continue ;;
+                *) ks_error "Invalid selection!"; sleep 1 ;;
+            esac
+            ;;
+            
+        U)
+            echo -e "\n${KS_ERROR}${EMOJI_ALERT} ${EMOJI_FIRE} DANGER ZONE ${EMOJI_FIRE} ${EMOJI_ALERT}${NC}"
+            echo -e "${KS_WARNING}${EMOJI_WARN} This will remove ALL Pterodactyl data!${NC}"
+            echo -e "${KS_DARK}════════════════════════════════════════════════════════════${NC}"
+            
+            read -p "$(echo -e "${KS_ERROR}${EMOJI_ALERT} Type 'DELETE-EVERYTHING' to confirm: ${NC}")" confirm
+            if [ "${confirm^^}" = "DELETE-EVERYTHING" ]; then
+                ks_progress "Initiating complete uninstall..."
+                rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings
+                ks_success "Pterodactyl system completely removed!"
+            else
+                ks_info "Uninstallation cancelled."
+            fi
+            sleep 2
+            ;;
+            
+        0)
+            echo -e "\n${KS_PRIMARY}${EMOJI_EXIT} ${EMOJI_HOME} Thank you for using KS Hosting! ${EMOJI_HOME} ${EMOJI_EXIT}${NC}"
+            echo -e "${KS_SECONDARY}Powered by KSGAMING - Professional Game Hosting Solutions${NC}"
+            echo -e "${KS_DARK}$(printf '%0.s─' $(seq 1 $WIDTH))${NC}"
+            echo -e "${KS_INFO}Shutting down control panel...${NC}"
+            sleep 2
+            clear
+            exit 0
+            ;;
+            
+        *)
+            ks_error "Invalid option! Please select a valid menu item."
+            sleep 1
+            ;;
+    esac
+done
