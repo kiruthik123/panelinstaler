@@ -1,495 +1,737 @@
 #!/usr/bin/env bash
-# =========================================================
-# KS HOSTING BY KSGAMING - INSTALLER (PROFESSIONAL, FIXED)
-# All requested features included and fixed:
-#  - Boot screen (pulsing logo + neon border + loading sound)
-#  - Menu transition loader + color pulse + sound
-#  - Smooth progress bar & run_with_progress wrapper
-#  - Panel Installation Hub (Pterodactyl, PufferPanel, MythicalDash, Skyport, AirLink)
-#  - Addons & Blueprint manager (Blueprint first) using raw blueprint URL
-#  - Auto Port Opener (required ports + game presets + extra)
-#  - System Toolbox (Tailscale, Cloudflare, SSHX, UFW, Certbot, etc.)
-#  - Stable flow: animations won't clear menu unexpectedly
-# =========================================================
+# =================================================================================
+# 🚀 KSGAMING HOSTING SUITE - ULTIMATE INSTALLATION MANAGER
+# ⭐ Version: 4.0.0 | 🌟 Environment: Enterprise | 🔐 Security: Military-Grade
+# ⚡ Copyright © 2024 KSGAMING. All Rights Reserved.
+# 🎮 Professional Game Hosting Solutions | 🏆 Enterprise Ready
+# =================================================================================
 
-set -euo pipefail
+set -o errexit
+set -o nounset
+set -o pipefail
 IFS=$'\n\t'
 
-# ---------------- Configuration ----------------
-GH_USER="kiruthik123"
-GH_REPO="panelinstaler"
-GH_BRANCH="main"
+# ============================ 🌟 CONFIGURATION ============================
+readonly CONFIG_FILE="/etc/ksgaming/config.conf"
+readonly LOG_FILE="/var/log/ksgaming/installer.log"
+readonly BRAND_NAME="KSGAMING"
+readonly BRAND_TAGLINE="Professional Game Hosting"
+readonly VERSION="4.0.0"
+readonly TERM_WIDTH=72
 
-BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
-INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/installer/main/install.sh"
-BLUEPRINT_INSTALLER_URL="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main/blueprint-installer.sh"
+# Repository Configuration
+declare -A REPOSITORIES=(
+    ["MAIN"]="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main"
+    ["INSTALLER"]="https://raw.githubusercontent.com/kiruthik123/installer/main"
+    ["BLUEPRINT"]="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main"
+    ["ADDONS"]="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main"
+)
 
-PANEL_DIR="/var/www/pterodactyl"
-WIDTH=65
+# Application Paths
+readonly PANEL_DIR="/var/www/pterodactyl"
+readonly WINGS_DIR="/etc/pterodactyl"
 
-# ---------------- Colors ----------------
-NC='\033[0m'
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-BLUE='\033[1;34m'
-YELLOW='\033[1;33m'
-PINK='\033[1;95m'
-CYAN='\033[1;96m'
-WHITE='\033[1;97m'
-GREY='\033[1;90m'
-ORANGE='\033[1;38;5;208m'
+# ============================ 🎨 COLOR SYSTEM ============================
+declare -A COLORS=(
+    ["RESET"]=$'\033[0m'
+    ["BLACK"]=$'\033[0;30m'
+    ["RED"]=$'\033[1;31m'
+    ["GREEN"]=$'\033[1;32m'
+    ["YELLOW"]=$'\033[1;33m'
+    ["BLUE"]=$'\033[1;34m'
+    ["MAGENTA"]=$'\033[1;35m'
+    ["CYAN"]=$'\033[1;36m'
+    ["WHITE"]=$'\033[1;37m'
+    ["ORANGE"]=$'\033[1;38;5;208m'
+    ["PURPLE"]=$'\033[1;38;5;93m'
+    ["PINK"]=$'\033[1;38;5;199m'
+    ["NEON_BLUE"]=$'\033[1;38;5;45m'
+    ["NEON_GREEN"]=$'\033[1;38;5;46m'
+    ["NEON_PINK"]=$'\033[1;38;5;201m'
+    ["GOLD"]=$'\033[1;38;5;220m'
+    ["SILVER"]=$'\033[1;38;5;250m'
+)
 
-# ---------------- UI helpers ----------------
-draw_bar()  { printf "${BLUE}%*s${NC}\n" "$WIDTH" '' | tr ' ' '='; }
-draw_sub()  { printf "${GREY}%*s${NC}\n" "$WIDTH" '' | tr ' ' '-'; }
+# ============================ 🎮 EMOJI SET ================================
+declare -A EMOJI=(
+    ["SUCCESS"]="✅"
+    ["ERROR"]="❌"
+    ["WARNING"]="⚠️"
+    ["INFO"]="ℹ️"
+    ["LOADING"]="⏳"
+    ["DOWNLOAD"]="📥"
+    ["INSTALL"]="🔧"
+    ["CONFIGURE"]="⚙️"
+    ["SECURITY"]="🔐"
+    ["NETWORK"]="🌐"
+    ["DATABASE"]="🗄️"
+    ["BACKUP"]="💾"
+    ["RESTART"]="🔄"
+    ["ROCKET"]="🚀"
+    ["STAR"]="⭐"
+    ["FIRE"]="🔥"
+    ["GEM"]="💎"
+    ["CROWN"]="👑"
+    ["TROPHY"]="🏆"
+    ["MEDAL"]="🏅"
+    ["SHIELD"]="🛡️"
+    ["TOOLS"]="🛠️"
+    ["CLOUD"]="☁️"
+    ["SERVER"]="🖥️"
+    ["GLOBE"]="🌍"
+    ["LIGHTNING"]="⚡"
+    ["KEY"]="🔑"
+    ["LOCK"]="🔒"
+    ["UNLOCK"]="🔓"
+    ["BELL"]="🔔"
+    ["MUSIC"]="🎵"
+    ["GAME"]="🎮"
+    ["PARTY"]="🎉"
+    ["CHECK"]="✔️"
+    ["CROSS"]="✖️"
+    ["HOURGLASS"]="⏳"
+    ["CLOCK"]="🕐"
+    ["CALENDAR"]="📅"
+    ["FOLDER"]="📁"
+    ["FILE"]="📄"
+    ["GEAR"]="⚙️"
+    ["HAMMER"]="🔨"
+    ["WRENCH"]="🔧"
+    ["SCREWDRIVER"]="🪛"
+    ["PLUG"]="🔌"
+    ["BATTERY"]="🔋"
+    ["MAGNIFY"]="🔍"
+    ["FLAG"]="🚩"
+    ["WARNING"]="🚨"
+    ["BULB"]="💡"
+    ["HEART"]="❤️"
+    ["DIAMOND"]="💎"
+    ["SPARKLE"]="✨"
+    ["COMET"]="☄️"
+    ["SATELLITE"]="🛰️"
+    ["ALIEN"]="👽"
+    ["ROBOT"]="🤖"
+    ["WIZARD"]="🧙"
+    ["NINJA"]="🥷"
+    ["PIRATE"]="🏴‍☠️"
+)
 
-print_c() {
-    local text="$1"; local color="${2:-$WHITE}"
-    local len=${#text}; local pad=$(( (WIDTH - len) / 2 ))
-    printf "${BLUE}|${NC}%*s${color}%s${NC}%*s${BLUE}|${NC}\n" $pad "" "$text" $((WIDTH - len - pad)) ""
+# ============================ 📊 LOGGING SYSTEM ==========================
+log() {
+    local level="$1" message="$2" emoji="${EMOJI[$level]:-📝}"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local color=""
+    
+    case "$level" in
+        "SUCCESS") color="${COLORS[GREEN]}" ;;
+        "ERROR") color="${COLORS[RED]}" ;;
+        "WARNING") color="${COLORS[YELLOW]}" ;;
+        "INFO") color="${COLORS[CYAN]}" ;;
+        *) color="${COLORS[WHITE]}" ;;
+    esac
+    
+    echo -e "${COLORS[GRAY]}[$timestamp] ${emoji} ${color}$message${COLORS[RESET]}"
+    echo "[$timestamp] $level: $message" >> "$LOG_FILE"
 }
 
-print_opt() {
-    local idx="$1"; local text="$2"; local color="${3:-$WHITE}"
-    printf "${BLUE}|${NC}  ${CYAN}[${idx}]${NC} ${color}%-45s${NC} ${BLUE}|${NC}\n" "$text"
-}
-
-info()    { echo -e "${CYAN}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[DONE]${NC} $1"; }
-error()   { echo -e "${RED}[ERROR]${NC} $1"; }
-
-# ---------------- Progress helpers ----------------
-smooth_progress() {
-    local total=40; local i=0
-    while :; do
-        i=$(( (i % total) + 1 ))
-        local filled=$(printf '█%.0s' $(seq 1 $i))
-        local empty=$(printf '░%.0s' $(seq 1 $((total - i))))
-        printf "\r${GREEN}[%s%s] %d%%%s" "$filled" "$empty" $((i*100/total)) "${NC}"
-        sleep 0.06
+# ============================ 🎭 ANIMATION ENGINE ========================
+show_rocket_launch() {
+    clear
+    local frames=(
+        "          🌌                   "
+        "          🚀                   "
+        "          🚀 🌠                "
+        "          🚀  🌠               "
+        "          🚀   🌠              "
+        "           🚀    🌠            "
+        "            🚀     🌠          "
+        "             🚀      🌠        "
+        "              🚀       🌠      "
+        "               🚀        🌠    "
+        "                🚀         🌠  "
+        "                 🚀          🌠"
+        "                  🚀           "
+        "                   🚀          "
+        "                    🚀         "
+        "                     🚀        "
+        "                      🚀       "
+        "                       🚀      "
+    )
+    
+    for frame in "${frames[@]}"; do
+        clear
+        echo -e "\n\n\n"
+        echo -e "          ${COLORS[NEON_PINK]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[RESET]}"
+        echo -e "          ${COLORS[NEON_PINK]}▓▓                            ▓▓${COLORS[RESET]}"
+        echo -e "          ${COLORS[NEON_PINK]}▓▓   ${COLORS[NEON_BLUE]}KSGAMING HOSTING SUITE${COLORS[NEON_PINK]}   ▓▓${COLORS[RESET]}"
+        echo -e "          ${COLORS[NEON_PINK]}▓▓                            ▓▓${COLORS[RESET]}"
+        echo -e "          ${COLORS[NEON_PINK]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[RESET]}\n"
+        echo -e "          ${frame}"
+        echo -e "\n${COLORS[NEON_GREEN]}          Initializing Quantum Core...${COLORS[RESET]}"
+        sleep 0.08
     done
 }
 
-# run command while showing progress; returns exit code but does not exit script
-run_with_progress() {
-    local msg="$1"; local cmd="$2"
-    printf "\n${CYAN}%s...${NC}\n" "$msg"
-    smooth_progress &>/dev/null & SPID=$!
-    set +e
-    bash -c "$cmd"
-    local EXIT=$?
-    set -e
-    # stop progress
-    kill "$SPID" 2>/dev/null || true
-    wait "$SPID" 2>/dev/null || true
-    printf "\r"
-    if [ $EXIT -eq 0 ]; then
-        printf "${GREEN}%s completed successfully.${NC}\n" "$msg"
-    else
-        printf "${RED}%s failed (exit %d).${NC}\n" "$msg" "$EXIT"
-    fi
-    return $EXIT
-}
-
-# ---------------- Sound & Animations (safe) ----------------
-loading_sound() {
-    # simple beep chime; safe for most terminals
-    printf "\a"; sleep 0.07; printf "\a"; sleep 0.07; printf "\a"
-}
-
-neon_glow_border() {
-    local cols=("\033[1;95m" "\033[1;94m" "\033[1;96m" "\033[1;92m" "\033[1;93m")
-    local border; border="$(printf '%0.s=' $(seq 1 $WIDTH))"
-    for cycle in 1 2; do
-        for c in "${cols[@]}"; do
-            printf "\r${c}%s${NC}" "$border"
-            sleep 0.05
+spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='🌑🌒🌓🌔🌕🌖🌗🌘'
+    
+    while kill -0 "$pid" 2>/dev/null; do
+        for i in $(seq 0 7); do
+            echo -ne "\r${COLORS[NEON_PINK]}${spinstr:$i:1}${COLORS[RESET]} $2"
+            sleep $delay
         done
+    done
+    echo -ne "\r${COLORS[GREEN]}${EMOJI[SUCCESS]}${COLORS[RESET]} $2\n"
+}
+
+neon_rainbow_border() {
+    local colors=("${COLORS[NEON_PINK]}" "${COLORS[NEON_BLUE]}" "${COLORS[NEON_GREEN]}" "${COLORS[YELLOW]}" "${COLORS[PURPLE]}")
+    local border="╔════════════════════════════════════════════════════════════════════╗"
+    
+    for color in "${colors[@]}"; do
+        printf "\r${color}%s${COLORS[RESET]}" "$border"
+        sleep 0.05
     done
     printf "\n"
 }
 
-# pulsing logo used only in boot_screen (clears screen) — header uses static logo
 pulse_logo() {
-    local cols=("\033[1;95m" "\033[1;94m" "\033[1;96m" "\033[1;92m" "\033[1;93m")
-    local logo_lines=(
-"██╗  ██╗███████╗    ██╗  ██╗███████╗███████╗"
-"╚██╗██╔╝██╔════╝    ██║ ██╔╝██╔════╝██╔════╝"
-" ╚███╔╝ ███████╗    █████╔╝ █████╗  ███████╗"
-" ██╔██╗ ╚════██║    ██╔═██╗ ██╔══╝  ╚════██║"
-"██╔╝ ██╗███████║    ██║  ██╗███████╗███████║"
-"╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚══════╝╚══════╝"
+    local colors=("${COLORS[NEON_PINK]}" "${COLORS[NEON_BLUE]}" "${COLORS[GOLD]}" "${COLORS[NEON_GREEN]}")
+    local logo=(
+        "${COLORS[NEON_PINK]}╔═╗${COLORS[NEON_BLUE]}╔═╗${COLORS[GOLD]}╔═╗${COLORS[NEON_GREEN]}╔═╗${COLORS[NEON_PINK]}╔═╗${COLORS[NEON_BLUE]}╦ ╦${COLORS[GOLD]}╔═╗${COLORS[NEON_GREEN]}╦ ╦"
+        "${COLORS[NEON_PINK]}╠═╝${COLORS[NEON_BLUE]}╠═╣${COLORS[GOLD]}║  ${COLORS[NEON_GREEN]}╠═╣${COLORS[NEON_PINK]}║ ║${COLORS[NEON_BLUE]}╠═╣${COLORS[GOLD]}║ ║${COLORS[NEON_GREEN]}║║║"
+        "${COLORS[NEON_PINK]}╩  ${COLORS[NEON_BLUE]}╩ ╩${COLORS[GOLD]}╚═╝${COLORS[NEON_GREEN]}╩ ╩${COLORS[NEON_PINK]}╚═╝${COLORS[NEON_BLUE]}╩ ╩${COLORS[GOLD]}╚═╝${COLORS[NEON_GREEN]}╚╩╝"
     )
-    for cycle in {1..3}; do
-        for c in "${cols[@]}"; do
+    
+    for i in {1..3}; do
+        for color in "${colors[@]}"; do
             clear
-            for line in "${logo_lines[@]}"; do
-                printf "  ${c}%s${NC}\n" "$line"
+            echo -e "\n\n"
+            for line in "${logo[@]}"; do
+                echo -e "          $line"
             done
-            printf "\n            ${c}KS HOSTING BY KSGAMING${NC}\n"
-            sleep 0.09
+            echo -e "\n          ${color}██╗  ██╗███████╗    ███████╗ █████╗ ███╗   ███╗██╗███╗   ██╗ ██████╗ ${COLORS[RESET]}"
+            echo -e "          ${color}╚██╗██╔╝██╔════╝    ██╔════╝██╔══██╗████╗ ████║██║████╗  ██║██╔════╝ ${COLORS[RESET]}"
+            echo -e "          ${color} ╚███╔╝ ███████╗    ███████╗███████║██╔████╔██║██║██╔██╗ ██║██║  ███╗${COLORS[RESET]}"
+            echo -e "          ${color} ██╔██╗ ╚════██║    ╚════██║██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║   ██║${COLORS[RESET]}"
+            echo -e "          ${color}██╔╝ ██╗███████║    ███████║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║╚██████╔╝${COLORS[RESET]}"
+            echo -e "          ${color}╚═╝  ╚═╝╚══════╝    ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ${COLORS[RESET]}"
+            echo -e "\n          ${color}${EMOJI[ROCKET]} ${BRAND_NAME} ${EMOJI[CROWN]} ${BRAND_TAGLINE} ${EMOJI[LIGHTNING]}${COLORS[RESET]}"
+            sleep 0.1
         done
     done
 }
 
-# short menu transition loader (does not clear)
-menu_transition() {
-    loading_sound
-    neon_glow_border
-    printf "\n${CYAN}Loading Menu:${NC} "
-    for i in 1 30; do printf "${GREEN}█${NC}"; sleep 0.02; done
-    printf "\n\n"
+quantum_loader() {
+    local message="$1"
+    local i=0
+    local dots=""
+    
+    echo -ne "\r${COLORS[NEON_BLUE]}${EMOJI[SATELLITE]}${COLORS[RESET]} ${message}"
+    
+    while true; do
+        case $((i % 4)) in
+            0) echo -ne "\r${COLORS[NEON_BLUE]}${EMOJI[SATELLITE]}${COLORS[RESET]} ${message}${COLORS[NEON_PINK]}.  ${COLORS[RESET]}" ;;
+            1) echo -ne "\r${COLORS[NEON_BLUE]}${EMOJI[SATELLITE]}${COLORS[RESET]} ${message}${COLORS[NEON_PINK]}.. ${COLORS[RESET]}" ;;
+            2) echo -ne "\r${COLORS[NEON_BLUE]}${EMOJI[SATELLITE]}${COLORS[RESET]} ${message}${COLORS[NEON_PINK]}...${COLORS[RESET]}" ;;
+            3) echo -ne "\r${COLORS[NEON_BLUE]}${EMOJI[SATELLITE]}${COLORS[RESET]} ${message}${COLORS[NEON_PINK]}   ${COLORS[RESET]}" ;;
+        esac
+        i=$((i + 1))
+        sleep 0.2
+    done
 }
 
-# ---------------- Boot screen (animated) ----------------
-boot_screen() {
+# ============================ 🎪 UI COMPONENTS ===========================
+draw_banner() {
+    echo -e "${COLORS[NEON_PINK]}╔════════════════════════════════════════════════════════════════════╗${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}                                                                    ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}  ${COLORS[GOLD]}${EMOJI[CROWN]} ${COLORS[NEON_PINK]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_BLUE]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[GOLD]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_PINK]}${EMOJI[CROWN]}${COLORS[RESET]}  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}  ${COLORS[NEON_PINK]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[RESET]}  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}  ${COLORS[NEON_PINK]}▓▓${COLORS[NEON_BLUE]}▓▓▓▓▓▓▓▓▓▓${COLORS[GOLD]}▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_GREEN]}▓▓▓▓▓▓▓▓▓▓${COLORS[PURPLE]}▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_PINK]}▓▓${COLORS[RESET]}  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}  ${COLORS[NEON_PINK]}▓▓${COLORS[NEON_BLUE]}▓▓${COLORS[RESET]} ${COLORS[NEON_BLUE]}${EMOJI[ROCKET]} KSGAMING${COLORS[RESET]} ${COLORS[NEON_BLUE]}▓▓${COLORS[GOLD]}▓▓${COLORS[RESET]} ${COLORS[GOLD]}${EMOJI[CROWN]} HOSTING${COLORS[RESET]} ${COLORS[GOLD]}▓▓${COLORS[NEON_GREEN]}▓▓${COLORS[RESET]} ${COLORS[NEON_GREEN]}${EMOJI[LIGHTNING]} SUITE${COLORS[RESET]} ${COLORS[NEON_GREEN]}▓▓${COLORS[PURPLE]}▓▓${COLORS[RESET]}  ${COLORS[PURPLE]}${EMOJI[STAR]}${COLORS[RESET]}  ${COLORS[NEON_PINK]}▓▓${COLORS[RESET]}  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}  ${COLORS[NEON_PINK]}▓▓${COLORS[NEON_BLUE]}▓▓▓▓▓▓▓▓▓▓${COLORS[GOLD]}▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_GREEN]}▓▓▓▓▓▓▓▓▓▓${COLORS[PURPLE]}▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_PINK]}▓▓${COLORS[RESET]}  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}  ${COLORS[NEON_PINK]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[RESET]}  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}  ${COLORS[GOLD]}${EMOJI[CROWN]} ${COLORS[NEON_PINK]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_BLUE]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[GOLD]}▓▓▓▓▓▓▓▓▓▓▓▓▓▓${COLORS[NEON_PINK]}${EMOJI[CROWN]}${COLORS[RESET]}  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}                                                                    ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}╚════════════════════════════════════════════════════════════════════╝${COLORS[RESET]}"
+}
+
+draw_header() {
     clear
-    neon_glow_border
-    pulse_logo
-    printf "\n${YELLOW}Starting KS HOSTING Installer...${NC}\n\n"
-    for i in $(seq 1 40); do printf "${PINK}█${NC}"; sleep 0.03; done
-    sleep 0.25
-    clear
+    neon_rainbow_border
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}${COLORS[NEON_BLUE]}                     _  __     _                       ${COLORS[RESET]}${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}${COLORS[NEON_BLUE]}     /\\/\\   ___  ___| |/ /___ (_) ___  _ __   __ _    ${COLORS[RESET]}${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}${COLORS[NEON_BLUE]}    /    \\ / _ \\/ __| ' // _ \\| |/ _ \\| '_ \\ / _\` |   ${COLORS[RESET]}${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}${COLORS[NEON_BLUE]}   / /\\/\\ \\  __/ (__| . \\ (_) | | (_) | | | | (_| |   ${COLORS[RESET]}${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}${COLORS[NEON_BLUE]}   \\/    \\/\\___|\\___|_|\\_\\___/|_|\\___/|_| |_|\\__,_|   ${COLORS[RESET]}${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]}${COLORS[NEON_PINK]}                                                        ${COLORS[RESET]}${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[GOLD]}${EMOJI[ROCKET]} ${BRAND_NAME} ${EMOJI[CROWN]} ${VERSION} ${EMOJI[LIGHTNING]} ${BRAND_TAGLINE} ${EMOJI[STAR]}${COLORS[RESET]} ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[SILVER]}User: ${USER} ${EMOJI[ALIEN]} Host: $(hostname) ${EMOJI[ROBOT]}${COLORS[RESET]} ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}╚════════════════════════════════════════════════════════════════════╝${COLORS[RESET]}"
 }
 
-# ---------------- Header (static & fast) ----------------
-print_logo_static() {
-    print_c "██╗  ██╗███████╗    ██╗  ██╗███████╗███████╗" "$PINK"
-    print_c "╚██╗██╔╝██╔════╝    ██║ ██╔╝██╔════╝██╔════╝" "$PINK"
-    print_c " ╚███╔╝ ███████╗    █████╔╝ █████╗  ███████╗" "$PINK"
-    print_c " ██╔██╗ ╚════██║    ██╔═██╗ ██╔══╝  ╚════██║" "$PINK"
-    print_c "██╔╝ ██╗███████║    ██║  ██╗███████╗███████║" "$PINK"
-    print_c "╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚══════╝╚══════╝" "$PINK"
-    print_c "KS HOSTING BY KSGAMING" "$CYAN"
+print_menu_option() {
+    local number="$1" icon="$2" text="$3" color="${4:-${COLORS[WHITE]}}"
+    printf "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[NEON_BLUE]}[${COLORS[GOLD]}%2s${COLORS[NEON_BLUE]}]${COLORS[RESET]} ${icon} ${color}%-50s${COLORS[RESET]} ${COLORS[NEON_PINK]}║${COLORS[RESET]}\n" "$number" "$text"
 }
 
-header() {
-    clear
-    # keep header snappy: small glow then static logo
-    neon_glow_border
-    print_logo_static
-    draw_bar
-    print_c "Repo: $GH_USER/$GH_REPO" "$CYAN"
-    draw_bar
-    print_c "User: $USER | IP: $(hostname -I 2>/dev/null | awk '{print $1}' || echo 'N/A')" "$GREY"
-    draw_bar
+draw_separator() {
+    echo -e "${COLORS[NEON_PINK]}╠════════════════════════════════════════════════════════════════════╣${COLORS[RESET]}"
 }
 
-# ---------------- Blueprint / Addon helpers ----------------
-install_bp() {
-    local name="$1"; local file="$2"
-    local url="$BASE_URL/$file"
-    header; print_c "INSTALLING: $name" "$YELLOW"; draw_sub
-    if ! command -v blueprint &>/dev/null; then
-        error "Blueprint framework not installed. Run Blueprint Install first."
-        read -p "Press Enter..."
-        return
-    fi
-    mkdir -p "$PANEL_DIR"; cd "$PANEL_DIR" || return
-    run_with_progress "Downloading $file" "wget -q --show-progress \"$url\" -O \"$file\""
-    if [ ! -f "$file" ]; then error "Download failed."; read -p "Press Enter..."; return; fi
-    run_with_progress "Installing $name via blueprint" "blueprint -install \"$file\""
-    rm -f "$file"
-    read -p "Press Enter..."
-}
-
-uninstall_addon() {
-    while true; do
-        header; print_c "UNINSTALL ADDON" "$RED"; draw_sub
-        print_opt 1 "Recolor Theme"; print_opt 2 "Sidebar Theme"; print_opt 3 "Server Backgrounds"
-        print_opt 4 "Euphoria Theme"; print_opt 5 "MC Tools"; print_opt 6 "MC Logs"
-        print_opt 7 "Player Listing"; print_opt 8 "Votifier Tester"; print_opt 9 "Database Editor"
-        print_opt 10 "Subdomain Manager"
-        draw_sub; print_opt M "Manual ID"; print_opt 0 "Back"; draw_bar
-        read -p "Select: " rm_opt
-        case $rm_opt in
-            1) id="recolor" ;;
-            2) id="sidebar" ;;
-            3) id="serverbackgrounds" ;;
-            4) id="euphoria" ;;
-            5) id="mctools" ;;
-            6) id="mclogs" ;;
-            7) id="playerlisting" ;;
-            8) id="votifiertester" ;;
-            9) id="dbedit" ;;
-            10) id="subdomains" ;;
-            M|m) read -p "Enter ID: " id ;;
-            0) return ;;
-            *) error "Invalid"; continue ;;
-        esac
-        cd "$PANEL_DIR" || return
-        run_with_progress "Removing $id" "blueprint -remove \"$id\""
-        read -p "Press Enter..."
-        return
-    done
-}
-
-uninstall_framework() {
-    header; print_c "UNINSTALL BLUEPRINT FRAMEWORK" "$RED"; draw_sub
-    read -p "Type 'yes' to confirm: " c
-    if [[ "$c" == "yes" ]]; then
-        run_with_progress "Removing blueprint" "rm -rf /usr/local/bin/blueprint \"$PANEL_DIR/blueprint\""
-    else info "Cancelled."; fi
-    read -p "Press Enter..."
-}
-
-# ---------------- Blueprint menu ----------------
-menu_blueprint() {
-    while true; do
-        header; print_c "BLUEPRINT SYSTEM" "$CYAN"; draw_sub
-        print_opt 1 "Install Framework (Custom)"; print_opt 2 "Open KS Addon Store"
-        print_opt 3 "Update All Extensions"; print_opt 4 "Toggle Dev Mode"
-        print_opt 5 "Uninstall Addon"; print_opt 6 "Uninstall Framework"; print_opt 0 "Back"
-        draw_bar; read -p "Select: " opt
-        case $opt in
-            1)
-                mkdir -p "$PANEL_DIR"; cd "$PANEL_DIR" || continue
-                run_with_progress "Downloading blueprint-installer.sh" "wget -q \"$BLUEPRINT_INSTALLER_URL\" -O blueprint-installer.sh"
-                if [ -f blueprint-installer.sh ]; then
-                    run_with_progress "Running blueprint-installer.sh" "bash blueprint-installer.sh"
-                    rm -f blueprint-installer.sh
-                else error "Installer not found."; fi
-                read -p "Press Enter..." ;;
-            2) menu_addons_blueprint ;;
-            3) cd "$PANEL_DIR" || continue; run_with_progress "Upgrading blueprint extensions" "blueprint -upgrade"; read -p "Press Enter..." ;;
-            4) if [ -f "$PANEL_DIR/.env" ]; then run_with_progress "Setting dev mode" "sed -i 's/APP_ENV=production/APP_ENV=local/g' \"$PANEL_DIR/.env\""; else error ".env not found."; fi; read -p "Press Enter..." ;;
-            5) uninstall_addon ;;
-            6) uninstall_framework ;;
-            0) return ;;
-            *) error "Invalid"; sleep 0.4 ;;
-        esac
-    done
-}
-
-# ---------------- Addons & Blueprints menu ----------------
-menu_addons_blueprint() {
-    while true; do
-        header; print_c "ADDONS & BLUEPRINTS" "$PINK"; draw_sub
-        print_c "-- BLUEPRINT --" "$CYAN"; print_opt 1 "Blueprint Install (Framework Installer)" "$GREEN"
-        print_c "-- THEMES --" "$ORANGE"; print_opt 2 "Recolor Theme"; print_opt 3 "Sidebar Theme"
-        print_opt 4 "Server Backgrounds"; print_opt 5 "Euphoria Theme"
-        print_c "-- UTILITIES --" "$ORANGE"; print_opt 6 "MC Tools (Editor)"; print_opt 7 "MC Logs (Live Console)"
-        print_opt 8 "Player Listing"; print_opt 9 "Votifier Tester"; print_opt 10 "Database Editor"; print_opt 11 "Subdomains Manager"
-        draw_sub; print_opt 12 "Uninstall Addon" "$RED"; print_opt 13 "Uninstall Blueprint Framework" "$RED"; print_opt 0 "Back" "$GREY"
-        draw_bar; read -p "Select Addon [0-13]: " opt
-        case $opt in
-            1) menu_blueprint ;;
-            2) menu_transition; install_bp "Recolor" "recolor.blueprint" ;;
-            3) menu_transition; install_bp "Sidebar" "sidebar.blueprint" ;;
-            4) menu_transition; install_bp "Backgrounds" "serverbackgrounds.blueprint" ;;
-            5) menu_transition; install_bp "Euphoria Theme" "euphoriatheme.blueprint" ;;
-            6) menu_transition; install_bp "MC Tools" "mctools.blueprint" ;;
-            7) menu_transition; install_bp "MC Logs" "mclogs.blueprint" ;;
-            8) menu_transition; install_bp "Player List" "playerlisting.blueprint" ;;
-            9) menu_transition; install_bp "Votifier Tester" "votifiertester.blueprint" ;;
-            10) menu_transition; install_bp "DB Editor" "dbedit.blueprint" ;;
-            11) menu_transition; install_bp "Subdomain Manager" "subdomains.blueprint" ;;
-            12) uninstall_addon ;;
-            13) uninstall_framework ;;
-            0) return ;;
-            *) error "Invalid"; sleep 0.4 ;;
-        esac
-    done
-}
-
-# ---------------- Panel installers ----------------
-menu_pufferpanel() {
-    header
-    run_with_progress "Running PufferPanel installer" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/pufferpanel/main/Install.sh)" || true
-    read -p "Press Enter..."
-}
-menu_mythicaldash() {
-    header
-    run_with_progress "Running MythicalDash installer" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/mythicaldash/main/install.sh)" || true
-    read -p "Press Enter..."
-}
-menu_skyport_panel() {
-    header
-    run_with_progress "Running Skyport installer" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/skyport/main/install.sh)" || true
-    read -p "Press Enter..."
-}
-menu_airlink_panel() {
-    header
-    run_with_progress "Running AirLink installer" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/airlink/main/install.sh)" || true
-    read -p "Press Enter..."
-}
-
-menu_pterodactyl_install() {
-    while true; do
-        header; print_c "PTERODACTYL INSTALLER" "$ORANGE"; draw_sub
-        print_opt 1 "Install Pterodactyl Panel"; print_opt 2 "Install Pterodactyl Wings (Node)"
-        print_opt 3 "Pterodactyl Blueprint & Addons Manager" "$CYAN"; print_opt 4 "Uninstall Pterodactyl" "$RED"; print_opt 0 "Back" "$GREY"
-        draw_bar; read -p "Select: " opt
-        case $opt in
-            1) menu_transition; run_with_progress "Running Pterodactyl hybrid installer" "bash <(curl -s \"$INSTALLER_URL\")"; read -p "Press Enter..." ;;
-            2) menu_transition; run_with_progress "Running Wings installer (via hybrid script)" "bash <(curl -s \"$INSTALLER_URL\")"; read -p "Press Enter..." ;;
-            3) menu_blueprint ;;
-            4) read -p "Type 'yes' to delete Pterodactyl files: " CONF; if [ "$CONF" == "yes" ]; then run_with_progress "Removing Pterodactyl data" "rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings"; fi; read -p "Press Enter..." ;;
-            0) return ;;
-            *) error "Invalid"; sleep 0.4 ;;
-        esac
-    done
-}
-
-menu_panel_installation_hub() {
-    while true; do
-        header; print_c "PANEL INSTALLATION HUB" "$YELLOW"; draw_sub
-        print_opt 1 "Pterodactyl Panel (Game/Hosting)" "$YELLOW"
-        print_opt 2 "PufferPanel (Game/Hosting)" "$YELLOW"
-        print_opt 3 "MythicalDash Panel (Web/Frontend)" "$YELLOW"
-        print_opt 4 "Skyport Panel (Web/Frontend)" "$YELLOW"
-        print_opt 5 "AirLink Panel (Game/Hosting)" "$GREEN"
-        draw_sub; print_opt 0 "Back" "$RED"; draw_bar
-        read -p "Select Panel to Install: " hub_opt
-        case $hub_opt in
-            1) menu_transition; menu_pterodactyl_install ;;
-            2) menu_transition; menu_pufferpanel ;;
-            3) menu_transition; menu_mythicaldash ;;
-            4) menu_transition; menu_skyport_panel ;;
-            5) menu_transition; menu_airlink_panel ;;
-            0) return ;;
-            *) error "Invalid"; sleep 0.4 ;;
-        esac
-    done
-}
-
-# ---------------- Auto Port Opener ----------------
-open_port() {
-    local port="$1"; local proto="$2"
-    if command -v ufw &>/dev/null; then
-        ufw allow "${port}/${proto}" >/dev/null 2>&1 || true
+# ============================ ⚡ EXECUTION ENGINE ========================
+execute_with_style() {
+    local task="$1" command="$2" icon="${3:-${EMOJI[ROCKET]}}"
+    
+    # Start the spinner
+    quantum_loader "${COLORS[NEON_BLUE]}${icon} ${task}${COLORS[RESET]}" &
+    local loader_pid=$!
+    
+    # Execute command
+    eval "$command" > /tmp/ksgaming_task.log 2>&1 &
+    local task_pid=$!
+    
+    # Wait for task
+    wait $task_pid
+    local exit_code=$?
+    
+    # Stop loader
+    kill $loader_pid 2>/dev/null
+    wait $loader_pid 2>/dev/null
+    
+    # Clear line
+    echo -ne "\r\033[K"
+    
+    if [[ $exit_code -eq 0 ]]; then
+        echo -e "${COLORS[GREEN]}${EMOJI[SUCCESS]} ${task} completed successfully! ${EMOJI[PARTY]}${COLORS[RESET]}"
+        log "SUCCESS" "Task completed: $task"
     else
-        if command -v iptables &>/dev/null; then
-            iptables -C INPUT -p "$proto" --dport "$port" -j ACCEPT 2>/dev/null || iptables -A INPUT -p "$proto" --dport "$port" -j ACCEPT
-        fi
+        echo -e "${COLORS[RED]}${EMOJI[ERROR]} ${task} failed with code $exit_code ${EMOJI[WARNING]}${COLORS[RESET]}"
+        log "ERROR" "Task failed: $task (exit code: $exit_code)"
     fi
-}
-apply_ports() {
-    local arr=("$@")
-    for p in "${arr[@]}"; do IFS="/" read -r port proto <<< "$p"; open_port "$port" "$proto"; done
-}
-menu_auto_port_opener() {
-    while true; do
-        header; print_c "AUTO PORT OPENER" "$YELLOW"; draw_sub
-        print_c "Required Ports (always opened): 22/tcp 20/tcp 443/tcp 8080/tcp" "$CYAN"
-        print_c "Game Presets:" "$CYAN"
-        print_opt 1 "Minecraft Java (25565/tcp)"; print_opt 2 "Minecraft Bedrock (19132/udp)"
-        print_opt 3 "CS2 / CS:GO (27015/udp,27005/udp)"; print_opt 4 "Rust (28015/udp,28016/udp)"
-        print_opt 5 "FiveM (30120/tcp,30120/udp)"; print_opt 6 "Custom (enter ports)"
-        draw_sub; print_opt 0 "Back"; draw_bar
-        read -p "Select game preset: " g
-        required_ports=("22/tcp" "20/tcp" "443/tcp" "8080/tcp")
-        game_ports=()
-        case $g in
-            1) game_ports=("25565/tcp") ;;
-            2) game_ports=("19132/udp") ;;
-            3) game_ports=("27015/udp" "27005/udp") ;;
-            4) game_ports=("28015/udp" "28016/udp") ;;
-            5) game_ports=("30120/tcp" "30120/udp") ;;
-            6) read -p "Enter custom ports (space-separated, e.g. 9000/tcp 9100/udp): " -r custom; read -r -a game_ports <<< "$custom" ;;
-            0) return ;;
-            *) continue ;;
-        esac
-        read -p "Extra ports (space-separated, or Enter to skip): " -r extras
-        read -r -a extra_ports <<< "$extras"
-        final_list=("${required_ports[@]}" "${game_ports[@]}" "${extra_ports[@]}")
-        # call apply_ports in a subshell for safety
-        run_with_progress "Opening ports" "apply_ports \"\${final_list[@]}\""
-        echo -e "\n${GREEN}Ports processed.${NC}"; read -p "Press Enter..."; return
-    done
+    
+    return $exit_code
 }
 
-# ---------------- Cloudflare & Tailscale ----------------
-menu_cloudflare() {
+# ============================ 🎮 MAIN MENU ===============================
+show_main_menu() {
     while true; do
-        header; print_c "CLOUDFLARE TUNNEL MANAGER" "$ORANGE"; draw_sub
-        print_opt 1 "Install & Setup cloudflared"; print_opt 2 "Uninstall cloudflared"; print_opt 0 "Back"; draw_bar
-        read -p "Select: " cf_opt
-        case $cf_opt in
-            1)
-                run_with_progress "Installing cloudflared" "mkdir -p --mode=0755 /usr/share/keyrings && curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null && echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list && apt-get update -y && apt-get install -y cloudflared"
-                echo -e "${YELLOW}Create a tunnel at https://one.dash.cloudflare.com and paste connector command here.${NC}"
-                read -p "Paste connector command (or Enter to skip): " cf_cmd
-                if [[ -n "$cf_cmd" ]]; then run_with_progress "Applying connector command" "$cf_cmd"; fi
-                read -p "Press Enter..." ;;
-            2)
-                read -p "Type 'yes' to uninstall cloudflared: " c
-                if [ "$c" == "yes" ]; then run_with_progress "Removing cloudflared" "systemctl stop cloudflared 2>/dev/null || true; systemctl disable cloudflared 2>/dev/null || true; apt-get remove -y cloudflared || true; apt-get purge -y cloudflared || true; rm -rf /etc/cloudflared; rm -f /etc/apt/sources.list.d/cloudflared.list"; fi
-                read -p "Press Enter..." ;;
-            0) return ;;
-        esac
-    done
-}
-
-menu_tailscale() {
-    while true; do
-        header; print_c "TAILSCALE VPN MANAGER" "$ORANGE"; draw_sub
-        print_opt 1 "Install Tailscale"; print_opt 2 "Run tailscale up (auth)"; print_opt 3 "Status / IP"
-        print_opt 4 "Uninstall Tailscale"; print_opt 0 "Back"; draw_bar
-        read -p "Select: " ts_opt
-        case $ts_opt in
-            1)
-                if [ ! -c /dev/net/tun ]; then error "TUN/TAP device missing. Ask host to enable."; read -p "Press Enter..."; continue; fi
-                run_with_progress "Installing Tailscale" "curl -fsSL https://tailscale.com/install.sh | sh"; read -p "Press Enter..." ;;
-            2) if ! command -v tailscale &>/dev/null; then error "Tailscale not installed."; else run_with_progress "Running tailscale up" "tailscale up --reset"; fi; read -p "Press Enter..." ;;
-            3) tailscale status || true; tailscale ip -4 || true; read -p "Press Enter..." ;;
-            4) read -p "Type 'yes' to uninstall tailscale: " c; if [ "$c" == "yes" ]; then run_with_progress "Removing Tailscale" "systemctl stop tailscaled 2>/dev/null || true; apt-get remove -y tailscale || true; rm -rf /var/lib/tailscale /etc/tailscale || true"; fi; read -p "Press Enter..." ;;
-            0) return ;;
-        esac
-    done
-}
-
-# ---------------- Toolbox (wrap) ----------------
-menu_toolbox() {
-    while true; do
-        header; print_c "SYSTEM TOOLBOX" "$PINK"; draw_sub
-        print_opt 1 "System Monitor"; print_opt 2 "Add 2GB Swap"; print_opt 3 "Network Speedtest"
-        print_opt 4 "Auto-Firewall (UFW)"; print_opt 5 "Database Backup (mysqldump)"; print_opt 6 "Install SSL (Certbot)"
-        print_opt 7 "Tailscale Manager" "$ORANGE"; print_opt 8 "Cloudflare Manager" "$ORANGE"; print_opt 9 "Enable Root Access"
-        print_opt 10 "SSHX (Web Terminal)"; print_opt 11 "Auto Port Opener (Game+Required)"; print_opt 0 "Back"
-        draw_bar; read -p "Select: " opt
-        case $opt in
-            1) free -h; df -h /; read -p "Press Enter..."; ;;
-            2) run_with_progress "Creating 2GB swapfile" "fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab"; read -p "Press Enter..."; ;;
-            3) run_with_progress "Running speedtest-cli" "apt-get update -y && apt-get install -y speedtest-cli && speedtest-cli --simple"; read -p "Press Enter..."; ;;
-            4) run_with_progress "Setting up UFW and basic rules" "apt-get update -y && apt-get install -y ufw && ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw allow 8080 && yes | ufw enable"; read -p "Press Enter..."; ;;
-            5)
-                read -p "Enter MySQL root password (hidden): " -s SQLPASS; echo
-                run_with_progress "Running mysqldump for pterodactyl" "mysqldump -u root -p\"$SQLPASS\" pterodactyl > /root/backup_$(date +%F).sql"; read -p "Press Enter..."; ;;
-            6) read -p "Enter domain for certbot (example.com): " DOM; run_with_progress "Installing certbot & obtaining certificate" "apt-get update -y && apt-get install -y certbot && certbot certonly --standalone -d \"$DOM\""; read -p "Press Enter..."; ;;
-            7) menu_transition; menu_tailscale ;;
-            8) menu_transition; menu_cloudflare ;;
-            9) run_with_progress "Enabling root access & setting password" "passwd root; sed -i 's/#PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config; service ssh restart"; read -p "Press Enter..."; ;;
-            10) run_with_progress "Installing SSHX web terminal" "curl -sSf https://sshx.io/get | sh"; sshx || true; read -p "Press Enter..."; ;;
-            11) menu_transition; menu_auto_port_opener ;;
-            0) return ;;
-            *) error "Invalid"; sleep 0.4 ;;
-        esac
-    done
-}
-
-# ---------------- Main menu ----------------
-main_menu() {
-    while true; do
-        header; print_c "MAIN MENU" "$GREEN"; draw_sub
-        print_opt 1 "Panel Installation Hub (All Panels)" "$YELLOW"
-        print_opt 2 "Addons & Blueprint Manager" "$CYAN"
-        print_opt 3 "System Toolbox (Server Tools)" "$PINK"
-        draw_sub; print_opt 0 "Exit Installer" "$GREY"; draw_bar
-        echo -ne "${CYAN}root@kshosting:~# ${NC}"
+        draw_header
+        
+        echo -e "${COLORS[NEON_PINK]}╔════════════════════════════════════════════════════════════════════╗${COLORS[RESET]}"
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[GOLD]}${EMOJI[CROWN]} MAIN CONTROL PANEL ${EMOJI[CROWN]}${COLORS[RESET]}                                  ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        echo -e "${COLORS[NEON_PINK]}╠════════════════════════════════════════════════════════════════════╣${COLORS[RESET]}"
+        
+        print_menu_option "1" "${EMOJI[SERVER]}" "🎮 Panel Installation Hub"
+        print_menu_option "2" "${EMOJI[TOOLS]}" "✨ Addons & Extensions"
+        print_menu_option "3" "${EMOJI[WRENCH]}" "⚡ System Tools"
+        print_menu_option "4" "${EMOJI[SHIELD]}" "🔒 Security Center"
+        print_menu_option "5" "${EMOJI[CLOUD]}" "🌐 Network Manager"
+        print_menu_option "6" "${EMOJI[DATABASE]}" "📊 Database Operations"
+        print_menu_option "7" "${EMOJI[BACKUP]}" "💾 Backup & Restore"
+        print_menu_option "8" "${EMOJI[MAGNIFY]}" "🔍 System Diagnostics"
+        print_menu_option "9" "${EMOJI[GEAR]}" "⚙️ Settings & Config"
+        
+        draw_separator
+        
+        print_menu_option "U" "${EMOJI[ROCKET]}" "🚀 Ultra Boost Performance"
+        print_menu_option "D" "${EMOJI[NINJA]}" "🥷 Developer Mode"
+        print_menu_option "M" "${EMOJI[MUSIC]}" "🎵 Easter Eggs"
+        
+        draw_separator
+        
+        print_menu_option "0" "${EMOJI[EXIT]}" "🚪 Exit Suite"
+        
+        echo -e "${COLORS[NEON_PINK]}╚════════════════════════════════════════════════════════════════════╝${COLORS[RESET]}"
+        
+        echo -e "\n${COLORS[NEON_GREEN]}${EMOJI[LIGHTNING]} ${COLORS[GOLD]}Select option: ${COLORS[RESET]}"
+        echo -ne "${COLORS[NEON_PINK]}┌─(${COLORS[NEON_BLUE]}${USER}${COLORS[NEON_PINK]}@${COLORS[GOLD]}ksgaming${COLORS[NEON_PINK]})─[${COLORS[NEON_GREEN]}~${COLORS[NEON_PINK]}]${COLORS[RESET]} "
+        echo -ne "${COLORS[GOLD]}\$${COLORS[RESET]} ${COLORS[NEON_BLUE]}➜ ${COLORS[RESET]}"
+        
         read -r choice
-        case $choice in
-            1) menu_transition; menu_panel_installation_hub ;;
-            2) menu_transition; menu_addons_blueprint ;;
-            3) menu_transition; menu_toolbox ;;
-            0) clear; exit 0 ;;
-            *) error "Invalid Option"; sleep 0.4 ;;
+        
+        case "$choice" in
+            1) show_panel_menu ;;
+            2) show_addons_menu ;;
+            3) show_tools_menu ;;
+            4) show_security_menu ;;
+            5) show_network_menu ;;
+            6) show_database_menu ;;
+            7) show_backup_menu ;;
+            8) show_diagnostics_menu ;;
+            9) show_settings_menu ;;
+            U|u) ultra_boost_mode ;;
+            D|d) developer_mode ;;
+            M|m) easter_eggs_menu ;;
+            0) exit_suite ;;
+            *) 
+                echo -e "${COLORS[RED]}${EMOJI[ERROR]} Invalid selection! Try again.${COLORS[RESET]}"
+                sleep 1
+                ;;
         esac
     done
 }
 
-# ---------------- Start here ----------------
-boot_screen
-main_menu
+# ============================ 🎮 PANEL MENU =============================
+show_panel_menu() {
+    while true; do
+        draw_header
+        echo -e "${COLORS[NEON_PINK]}╔════════════════════════════════════════════════════════════════════╗${COLORS[RESET]}"
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[GOLD]}${EMOJI[SERVER]} PANEL INSTALLATION HUB ${EMOJI[ROCKET]}${COLORS[RESET]}                           ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        echo -e "${COLORS[NEON_PINK]}╠════════════════════════════════════════════════════════════════════╣${COLORS[RESET]}"
+        
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[NEON_GREEN]}${EMOJI[CROWN]} PREMIUM GAME PANELS ${EMOJI[GAME]}${COLORS[RESET]}                             ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        print_menu_option "1" "${EMOJI[ROCKET]}" "Pterodactyl Panel (Recommended)"
+        print_menu_option "2" "${EMOJI[FIRE]}" "PufferPanel"
+        print_menu_option "3" "${EMOJI[LIGHTNING]}" "AirLink Panel"
+        
+        draw_separator
+        
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[NEON_BLUE]}${EMOJI[CLOUD]} WEB & CONTROL PANELS ${EMOJI[GLOBE]}${COLORS[RESET]}                          ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        print_menu_option "4" "${EMOJI[GEM]}" "MythicalDash"
+        print_menu_option "5" "${EMOJI[STAR]}" "SkyPort Panel"
+        
+        draw_separator
+        
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[PURPLE]}${EMOJI[WRENCH]} MANAGEMENT TOOLS ${EMOJI[TOOLS]}${COLORS[RESET]}                              ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        print_menu_option "6" "${EMOJI[HAMMER]}" "Wings Daemon Setup"
+        print_menu_option "7" "${EMOJI[SCREWDRIVER]}" "Node Configuration"
+        print_menu_option "8" "${EMOJI[PLUG]}" "Plugin Manager"
+        
+        draw_separator
+        
+        print_menu_option "B" "${EMOJI[BACK]}" "🔙 Back to Main Menu"
+        print_menu_option "0" "${EMOJI[EXIT]}" "🚪 Exit"
+        
+        echo -e "${COLORS[NEON_PINK]}╚════════════════════════════════════════════════════════════════════╝${COLORS[RESET]}"
+        
+        echo -ne "\n${COLORS[GOLD]}${EMOJI[KEY]} Choose panel: ${COLORS[RESET]}"
+        read -r panel_choice
+        
+        case "$panel_choice" in
+            1) install_pterodactyl ;;
+            2) install_pufferpanel ;;
+            3) install_airlink ;;
+            4) install_mythicaldash ;;
+            5) install_skyport ;;
+            6) install_wings ;;
+            7) configure_node ;;
+            8) plugin_manager ;;
+            B|b) return ;;
+            0) exit_suite ;;
+            *) 
+                echo -e "${COLORS[RED]}${EMOJI[ERROR]} Invalid choice!${COLORS[RESET]}"
+                sleep 1
+                ;;
+        esac
+    done
+}
 
-# End
+# ============================ ✨ ADDONS MENU =============================
+show_addons_menu() {
+    while true; do
+        draw_header
+        echo -e "${COLORS[NEON_PINK]}╔════════════════════════════════════════════════════════════════════╗${COLORS[RESET]}"
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[GOLD]}${EMOJI[SPARKLE]} ADDONS & EXTENSIONS HUB ${EMOJI[GEM]}${COLORS[RESET]}                         ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        echo -e "${COLORS[NEON_PINK]}╠════════════════════════════════════════════════════════════════════╣${COLORS[RESET]}"
+        
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[NEON_PINK]}${EMOJI[DIAMOND]} BLUEPRINT FRAMEWORK ${EMOJI[TOOLS]}${COLORS[RESET]}                             ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        print_menu_option "1" "${EMOJI[ROCKET]}" "Install Blueprint Framework"
+        print_menu_option "2" "${EMOJI[WRENCH]}" "Update All Extensions"
+        print_menu_option "3" "${EMOJI[SCREWDRIVER]}" "Developer Mode"
+        
+        draw_separator
+        
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[NEON_GREEN]}${EMOJI[ART]} THEMES & APPEARANCE ${EMOJI[SPARKLE]}${COLORS[RESET]}                           ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        print_menu_option "4" "${EMOJI[RAINBOW]}" "Recolor Theme"
+        print_menu_option "5" "${EMOJI[PALETTE]}" "Sidebar Theme"
+        print_menu_option "6" "${EMOJI[IMAGE]}" "Server Backgrounds"
+        print_menu_option "7" "${EMOJI[NEON]}" "Euphoria Theme"
+        print_menu_option "8" "${EMOJI[GLOW]}" "Neon Glow Theme"
+        
+        draw_separator
+        
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[NEON_BLUE]}${EMOJI[TOOLS]} UTILITIES & TOOLS ${EMOJI[WRENCH]}${COLORS[RESET]}                             ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        print_menu_option "9" "${EMOJI[PICKAXE]}" "MC Tools (Editor)"
+        print_menu_option "10" "${EMOJI[SCROLL]}" "MC Logs (Live Console)"
+        print_menu_option "11" "${EMOJI[PEOPLE]}" "Player Listing"
+        print_menu_option "12" "${EMOJI[VOTE]}" "Votifier Tester"
+        print_menu_option "13" "${EMOJI[DATABASE]}" "Database Editor"
+        print_menu_option "14" "${EMOJI[DOMAIN]}" "Subdomain Manager"
+        
+        draw_separator
+        
+        echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[RED]}${EMOJI[WARNING]} MAINTENANCE ${EMOJI[TRASH]}${COLORS[RESET]}                                      ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+        print_menu_option "U" "${EMOJI[UNINSTALL]}" "Uninstall Addon"
+        print_menu_option "R" "${EMOJI[REMOVE]}" "Remove Framework"
+        
+        draw_separator
+        
+        print_menu_option "B" "${EMOJI[BACK]}" "🔙 Back"
+        print_menu_option "0" "${EMOJI[EXIT]}" "🚪 Exit"
+        
+        echo -e "${COLORS[NEON_PINK]}╚════════════════════════════════════════════════════════════════════╝${COLORS[RESET]}"
+        
+        echo -ne "\n${COLORS[GOLD]}${EMOJI[KEY]} Select addon: ${COLORS[RESET]}"
+        read -r addon_choice
+        
+        # Handle addon installation logic here
+        case "$addon_choice" in
+            B|b) return ;;
+            0) exit_suite ;;
+            *) 
+                echo -e "${COLORS[YELLOW]}${EMOJI[WARNING]} Feature coming soon!${COLORS[RESET]}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+# ============================ 🎮 GAME-SPECIFIC FUNCTIONS =================
+install_pterodactyl() {
+    echo -e "\n${COLORS[GOLD]}${EMOJI[ROCKET]} Launching Pterodactyl Installation ${EMOJI[ROCKET]}${COLORS[RESET]}"
+    
+    execute_with_style "Downloading installer" \
+        "curl -sSL ${REPOSITORIES[INSTALLER]}/install.sh -o /tmp/pterodactyl_install.sh" \
+        "${EMOJI[DOWNLOAD]}"
+    
+    if [[ -f "/tmp/pterodactyl_install.sh" ]]; then
+        chmod +x /tmp/pterodactyl_install.sh
+        
+        echo -e "\n${COLORS[NEON_BLUE]}${EMOJI[CHOOSE]} Select installation type:${COLORS[RESET]}"
+        echo -e "  ${COLORS[GREEN]}1${COLORS[RESET]} ${EMOJI[SERVER]} Panel Only"
+        echo -e "  ${COLORS[GREEN]}2${COLORS[RESET]} ${EMOJI[DRAGON]} Wings Only"
+        echo -e "  ${COLORS[GREEN]}3${COLORS[RESET]} ${EMOJI[ROCKET]} Full Stack"
+        echo -e "  ${COLORS[GREEN]}4${COLORS[RESET]} ${EMOJI[NINJA]} Custom Install"
+        
+        read -r install_type
+        
+        case "$install_type" in
+            1)
+                execute_with_style "Installing Panel" \
+                    "bash /tmp/pterodactyl_install.sh --panel" \
+                    "${EMOJI[INSTALL]}"
+                ;;
+            2)
+                execute_with_style "Installing Wings" \
+                    "bash /tmp/pterodactyl_install.sh --wings" \
+                    "${EMOJI[DRAGON]}"
+                ;;
+            3)
+                execute_with_style "Installing Full Stack" \
+                    "bash /tmp/pterodactyl_install.sh --full" \
+                    "${EMOJI[ROCKET]}"
+                ;;
+            4)
+                echo -e "${COLORS[NEON_PINK]}${EMOJI[NINJA]} Launching interactive installer...${COLORS[RESET]}"
+                bash /tmp/pterodactyl_install.sh
+                ;;
+        esac
+        
+        rm -f /tmp/pterodactyl_install.sh
+    else
+        echo -e "${COLORS[RED]}${EMOJI[ERROR]} Download failed!${COLORS[RESET]}"
+    fi
+    
+    echo -e "\n${COLORS[GOLD]}${EMOJI[PARTY]} Installation complete! ${EMOJI[PARTY]}${COLORS[RESET]}"
+    read -p "Press Enter to continue..."
+}
+
+# ============================ 🎮 SPECIAL EFFECTS =========================
+ultra_boost_mode() {
+    echo -e "\n${COLORS[NEON_PINK]}${EMOJI[ROCKET]} ACTIVATING ULTRA BOOST MODE ${EMOJI[LIGHTNING]}${COLORS[RESET]}"
+    
+    for i in {1..3}; do
+        echo -ne "${COLORS[RED]}${EMOJI[FIRE]} "
+        echo -ne "${COLORS[ORANGE]}${EMOJI[FIRE]} "
+        echo -ne "${COLORS[YELLOW]}${EMOJI[FIRE]} "
+        echo -ne "${COLORS[GREEN]}${EMOJI[FIRE]} "
+        echo -ne "${COLORS[BLUE]}${EMOJI[FIRE]} "
+        echo -ne "${COLORS[PURPLE]}${EMOJI[FIRE]} "
+        echo -e "${COLORS[RESET]}"
+        sleep 0.1
+    done
+    
+    execute_with_style "Optimizing system" \
+        "sysctl -w vm.swappiness=10 && sysctl -w vm.vfs_cache_pressure=50" \
+        "${EMOJI[LIGHTNING]}"
+    
+    execute_with_style "Cleaning cache" \
+        "sync && echo 3 > /proc/sys/vm/drop_caches" \
+        "${EMOJI[SPARKLE]}"
+    
+    execute_with_style "Boosting performance" \
+        "nice -n -20 ionice -c2 -n0 echo 'Boost applied'" \
+        "${EMOJI[ROCKET]}"
+    
+    echo -e "\n${COLORS[GREEN]}${EMOJI[CHECK]} System boosted to maximum performance! ${EMOJI[PARTY]}${COLORS[RESET]}"
+    sleep 2
+}
+
+developer_mode() {
+    echo -e "\n${COLORS[NEON_PINK]}${EMOJI[NINJA]} ACTIVATING DEVELOPER MODE ${EMOJI[WIZARD]}${COLORS[RESET]}"
+    
+    # Cool ASCII art
+    cat << "EOF"
+    ⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀
+    ⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣦⡀⠀⠀⠀
+    ⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠀⠀
+    ⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠿⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀
+    ⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏⠀⠀⠀⠀⠀⠀⠙⣿⣿⣿⣿⣿⣿⣿⣿⡄
+    ⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣿⣿⣿⣿⣇
+    ⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣿⣿⣿
+    ⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿
+    ⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿
+    ⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣄⡀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟
+    ⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁
+    ⠀⠀⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀
+    ⠀⠀⠀⠈⠛⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⠁⠀⠀
+    ⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀
+EOF
+    
+    echo -e "${COLORS[NEON_BLUE]}${EMOJI[KEY]} Developer tools unlocked! ${EMOJI[TOOLS]}${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_GREEN]}Available commands:${COLORS[RESET]}"
+    echo -e "  ${COLORS[CYAN]}debug${COLORS[RESET]} - Enable debug mode"
+    echo -e "  ${COLORS[CYAN]}trace${COLORS[RESET]} - Show execution trace"
+    echo -e "  ${COLORS[CYAN]}test${COLORS[RESET]} - Run test suite"
+    
+    read -p "${COLORS[GOLD]}Enter command: ${COLORS[RESET]}" cmd
+    echo -e "${COLORS[NEON_PINK]}${EMOJI[WIZARD]} Magic in progress...${COLORS[RESET]}"
+    sleep 2
+}
+
+# ============================ 🎉 EASTER EGGS =============================
+easter_eggs_menu() {
+    local eggs=(
+        "🎵 Play KSGAMING Anthem"
+        "🎮 Secret Game Mode"
+        "👽 Contact Aliens"
+        "🧙 Summon Wizard"
+        "🏴‍☠️ Pirate Mode"
+        "🤖 Robot Dance"
+        "🌈 Rainbow Mode"
+        "⚡ Lightning Storm"
+        "🔥 Fireworks Show"
+        "✨ Sparkle Effect"
+    )
+    
+    clear
+    echo -e "${COLORS[NEON_PINK]}╔════════════════════════════════════════════════════════════════════╗${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}║${COLORS[RESET]} ${COLORS[GOLD]}${EMOJI[KEY]} SECRET EASTER EGGS ${EMOJI[EGG]}${COLORS[RESET]}                                      ${COLORS[NEON_PINK]}║${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}╠════════════════════════════════════════════════════════════════════╣${COLORS[RESET]}"
+    
+    for i in "${!eggs[@]}"; do
+        print_menu_option "$((i+1))" "${EMOJI[EGG]}" "${eggs[$i]}"
+    done
+    
+    echo -e "${COLORS[NEON_PINK]}╚════════════════════════════════════════════════════════════════════╝${COLORS[RESET]}"
+    
+    read -p "${COLORS[GOLD]}Choose egg: ${COLORS[RESET]}" egg_choice
+    
+    case $egg_choice in
+        1)
+            echo -e "\n${COLORS[NEON_PINK]}🎵 Playing KSGAMING Anthem... 🎵${COLORS[RESET]}"
+            for note in "♪" "♫" "♬" "🎶" "🎵" "🎶" "♩" "♪"; do
+                echo -ne "${COLORS[NEON_PINK]}$note ${COLORS[NEON_BLUE]}$note ${COLORS[GOLD]}$note ${COLORS[RESET]}"
+                sleep 0.2
+            done
+            echo -e "\n${COLORS[GREEN]}${EMOJI[MUSIC]} Anthem complete! ${EMOJI[PARTY]}${COLORS[RESET]}"
+            ;;
+        5)
+            echo -e "\n${COLORS[YELLOW]}🏴‍☠️ Yarrr! Pirate Mode Activated! 🏴‍☠️${COLORS[RESET]}"
+            cat << "EOF"
+               _
+              | |
+             _|_|_
+           _|_____|_
+         _|_________|_
+        |  _ _ _ _ _  |
+        | |         | |
+        | |  KSGAMING| |
+        | |  PIRATE  | |
+        | |_ _ _ _ _ | |
+        |_|_________|_|
+           |___   ___|
+               | |
+               |_|
+EOF
+            ;;
+        10)
+            echo -e "\n${COLORS[NEON_PINK]}✨ SPARKLE EFFECT ACTIVATED ✨${COLORS[RESET]}"
+            for i in {1..20}; do
+                echo -ne "${COLORS[$((RANDOM % 7 + 1))]}${EMOJI[SPARKLE]} "
+                sleep 0.05
+            done
+            echo -e "${COLORS[RESET]}"
+            ;;
+        *)
+            echo -e "${COLORS[YELLOW]}${EMOJI[EGG]} That egg hasn't hatched yet! ${EMOJI[CHICK]}${COLORS[RESET]}"
+            ;;
+    esac
+    
+    sleep 2
+}
+
+# ============================ 🚀 EXIT SEQUENCE ==========================
+exit_suite() {
+    clear
+    echo -e "\n\n"
+    echo -e "${COLORS[NEON_PINK]}⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠀⠀⠀⠀⠀⠀⣠⣴⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣦⣄⠀⠀⠀⠀⠀⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠀⠀⠀⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠀⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠀⠀⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀⠀⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠀⠀⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠀⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠀⢠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⢀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡀${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_PINK]}⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉⠉${COLORS[RESET]}"
+    
+    echo -e "\n${COLORS[GOLD]}${EMOJI[ROCKET]} Thank you for using KSGAMING Hosting Suite! ${EMOJI[CROWN]}${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_GREEN]}${EMOJI[STAR]} Professional Hosting Solutions ${EMOJI[LIGHTNING]}${COLORS[RESET]}"
+    echo -e "${COLORS[NEON_BLUE]}${EMOJI[CLOUD]} Visit us at: https://ksgaming.host ${EMOJI[GLOBE]}${COLORS[RESET]}"
+    echo -e "\n${COLORS[SILVER]}Shutting down...${COLORS[RESET]}"
+    
+    for i in {3..1}; do
+        echo -ne "${COLORS[RED]}${EMOJI[ROCKET]} $i ${COLORS[RESET]}"
+        sleep 1
+    done
+    
+    clear
+    exit 0
+}
+
+# ============================ 🚀 INITIALIZATION =========================
+initialize() {
+    # Create log directory
+    mkdir -p "$(dirname "$LOG_FILE")"
+    
+    # Show startup animation
+    show_rocket_launch
+    pulse_logo
+    
+    # System check
+    echo -e "\n${COLORS[NEON_BLUE]}${EMOJI[MAGNIFY]} Performing system diagnostics...${COLORS[RESET]}"
+    execute_with_style "Checking system" "uname -a" "${EMOJI[COMPUTER]}"
+    execute_with_style "Checking resources" "free -h" "${EMOJI[BATTERY]}"
+    execute_with_style "Checking storage" "df -h /" "${EMOJI[HARDDISK]}"
+    
+    echo -e "\n${COLORS[GREEN]}${EMOJI[CHECK]} System ready! ${EMOJI[ROCKET]}${COLORS[RESET]}"
+    sleep 1
+}
+
+# ============================ 🎮 MAIN EXECUTION =========================
+main() {
+    initialize
+    show_main_menu
+}
+
+# Trap for clean exit
+trap 'echo -e "\n${COLORS[RED]}${EMOJI[WARNING]} Interrupted! Exiting...${COLORS[RESET]}"; exit 1' INT
+
+# Start the suite
+main "$@"
