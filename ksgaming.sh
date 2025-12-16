@@ -102,7 +102,7 @@ declare -A EMOJI=(
     ["BATTERY"]="🔋"
     ["MAGNIFY"]="🔍"
     ["FLAG"]="🚩"
-    ["WARNING"]="🚨"
+    ["ALARM"]="🚨"
     ["BULB"]="💡"
     ["HEART"]="❤️"
     ["DIAMOND"]="💎"
@@ -114,6 +114,31 @@ declare -A EMOJI=(
     ["WIZARD"]="🧙"
     ["NINJA"]="🥷"
     ["PIRATE"]="🏴‍☠️"
+    ["EXIT"]="🚪"
+    ["BACK"]="🔙"
+    ["CHOOSE"]="🔘"
+    ["DRAGON"]="🐉"
+    ["ART"]="🎨"
+    ["RAINBOW"]="🌈"
+    ["PALETTE"]="🎨"
+    ["IMAGE"]="🖼️"
+    ["NEON"]="💡"
+    ["GLOW"]="✨"
+    ["PICKAXE"]="⛏️"
+    ["SCROLL"]="📜"
+    ["PEOPLE"]="👥"
+    ["VOTE"]="🗳️"
+    ["DOMAIN"]="🌐"
+    ["UNINSTALL"]="🗑️"
+    ["REMOVE"]="🧹"
+    ["TRASH"]="🗑️"
+    ["EGG"]="🥚"
+    ["CHICK"]="🐣"
+    ["COMPUTER"]="💻"
+    ["HARDDISK"]="💿"
+    ["ALIEN"]="👽"
+    ["ART"]="🎨"
+    ["NEON"]="💡"
 )
 
 # ============================ 📊 LOGGING SYSTEM ==========================
@@ -131,7 +156,7 @@ log() {
     esac
     
     echo -e "${COLORS[GRAY]}[$timestamp] ${emoji} ${color}$message${COLORS[RESET]}"
-    echo "[$timestamp] $level: $message" >> "$LOG_FILE"
+    echo "[$timestamp] $level: $message" >> "$LOG_FILE" 2>/dev/null
 }
 
 # ============================ 🎭 ANIMATION ENGINE ========================
@@ -708,7 +733,7 @@ exit_suite() {
 # ============================ 🚀 INITIALIZATION =========================
 initialize() {
     # Create log directory
-    mkdir -p "$(dirname "$LOG_FILE")"
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
     
     # Show startup animation
     show_rocket_launch
@@ -716,9 +741,11 @@ initialize() {
     
     # System check
     echo -e "\n${COLORS[NEON_BLUE]}${EMOJI[MAGNIFY]} Performing system diagnostics...${COLORS[RESET]}"
-    execute_with_style "Checking system" "uname -a" "${EMOJI[COMPUTER]}"
-    execute_with_style "Checking resources" "free -h" "${EMOJI[BATTERY]}"
-    execute_with_style "Checking storage" "df -h /" "${EMOJI[HARDDISK]}"
+    
+    # Fixed: Using direct emoji instead of variable
+    execute_with_style "Checking system" "uname -a" "💻"
+    execute_with_style "Checking resources" "free -h" "🔋"
+    execute_with_style "Checking storage" "df -h /" "💿"
     
     echo -e "\n${COLORS[GREEN]}${EMOJI[CHECK]} System ready! ${EMOJI[ROCKET]}${COLORS[RESET]}"
     sleep 1
