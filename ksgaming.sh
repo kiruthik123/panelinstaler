@@ -1,266 +1,260 @@
-#!/usr/bin/env bash
-# =========================================================
-# KS HOSTING - Enterprise Panel Management Suite
-# Version: 3.0.0 | Professional Edition
-# Features:
-#  - Animated boot sequence with audio feedback
-#  - Unified panel installation hub (5+ control panels)
-#  - Blueprint-based addon management system
-#  - Automated network configuration
-#  - Comprehensive system toolbox
-#  - Professional UI with smooth animations
-# =========================================================
+#!/bin/bash
+# ============================================================
+# KS HOSTING • PTERODACTYL INSTALLER
+# Panel + Wings + Cloudflare + Tailscale + Auto Wings Config
+# ============================================================
 
-set -euo pipefail
-IFS=$'\n\t'
+set -e
 
-# ---------------- Configuration ----------------
-readonly GH_USER="kiruthik123"
-readonly GH_REPO="panelinstaler"
-readonly GH_BRANCH="main"
-readonly BASE_URL="https://raw.githubusercontent.com/$GH_USER/$GH_REPO/$GH_BRANCH"
-readonly PANEL_DIR="/var/www/pterodactyl"
-readonly WIDTH=70
-readonly VERSION="3.0.0"
+# ---------------- COLORS ----------------
+BLUE="\e[34m"; GREEN="\e[32m"; YELLOW="\e[33m"; RED="\e[31m"
+BOLD="\e[1m"; RESET="\e[0m"
 
-# ---------------- ANSI Color Codes ----------------
-readonly NC='\033[0m'
-readonly RED='\033[1;31m'
-readonly GREEN='\033[1;32m'
-readonly BLUE='\033[1;34m'
-readonly YELLOW='\033[1;33m'
-readonly PURPLE='\033[1;35m'
-readonly CYAN='\033[1;36m'
-readonly WHITE='\033[1;97m'
-readonly GRAY='\033[1;90m'
-readonly ORANGE='\033[1;38;5;208m'
-readonly MAGENTA='\033[1;95m'
-
-# ---------------- Utility Functions ----------------
-log_info()    { echo -e "${CYAN}[ℹ]${NC} ${1:-}"; }
-log_success() { echo -e "${GREEN}[✓]${NC} ${1:-}"; }
-log_warn()    { echo -e "${YELLOW}[!]${NC} ${1:-}"; }
-log_error()   { echo -e "${RED}[✗]${NC} ${1:-}"; }
-log_debug()   { echo -e "${GRAY}[DEBUG]${NC} ${1:-}"; }
-
-draw_line() {
-    local char="${1:-=}" color="${2:-$BLUE}"
-    printf "${color}%*s${NC}\n" "$WIDTH" "" | tr " " "$char"
+# ---------------- UI ----------------
+banner() {
+clear
+echo -e "${BLUE}${BOLD}"
+echo "================================================="
+echo "        KS HOSTING • PTERODACTYL INSTALLER        "
+echo "================================================="
+echo -e "${RESET}"
 }
 
-print_center() {
-    local text="${1:-}"
-    local color="${2:-$WHITE}"
-    local len=${#text}
-    local pad=$(( (WIDTH - len) / 2 ))
-    
-    # Ensure padding isn't negative
-    [[ $pad -lt 0 ]] && pad=0
-    local r_pad=$(( WIDTH - len - pad ))
-    [[ $r_pad -lt 0 ]] && r_pad=0
+ok(){ echo -e "${GREEN}✔ $1${RESET}"; }
+warn(){ echo -e "${YELLOW}⚠ $1${RESET}"; }
+err(){ echo -e "${RED}✖ $1${RESET}"; }
 
-    printf "${BLUE}│${NC}%*s${color}%s${NC}%*s${BLUE}│${NC}\n" "$pad" "" "$text" "$r_pad" ""
+pause(){ read -rp "Press ENTER to continue..."; }
+
+# ============================================================
+# ASK PANEL DETAILS
+# ============================================================
+ask_panel_details() {
+read -rp "Panel Domain (panel.example.com): " PANEL_DOMAIN
+read -rp "Admin Email (Gmail): " ADMIN_EMAIL
+read -rp "Admin Username [admin]: " ADMIN_USER
+ADMIN_USER=${ADMIN_USER:-admin}
+read -rsp "Admin Password: " ADMIN_PASS
+echo
+ADMIN_PASS=${ADMIN_PASS:-Admin@123}
 }
 
-print_option() {
-    local num="${1:-}" 
-    local text="${2:-}" 
-    local color="${3:-$WHITE}"
-    printf "${BLUE}│${NC}  ${CYAN}[%2s]${NC} ${color}%-52s${NC} ${BLUE}│${NC}\n" "$num" "$text"
-}
+# ============================================================
+# INSTALL PANEL (OFFICIAL FLOW)
+# ============================================================
+install_panel() {
+banner
+echo "Installing Pterodactyl Panel"
+ask_panel_details
 
-print_header() {
-    clear
-    draw_line "="
-    print_center "╔══════════════════════════════════════════╗" "$PURPLE"
-    print_center "║    ██╗  ██╗███████╗    ██╗  ██╗███████╗   ║" "$PURPLE"
-    print_center "║   ██║ ██╔╝██╔════╝    ██║ ██╔╝██╔════╝   ║" "$PURPLE"
-    print_center "║   █████╔╝ ███████╗    █████╔╝ ███████╗   ║" "$PURPLE"
-    print_center "║   ██╔═██╗ ╚════██║    ██╔═██╗ ╚════██║   ║" "$PURPLE"
-    print_center "║   ██║  ██╗███████║    ██║  ██╗███████║   ║" "$PURPLE"
-    print_center "║   ╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚══════╝   ║" "$PURPLE"
-    print_center "╚══════════════════════════════════════════╝" "$PURPLE"
-    print_center "KS HOSTING SUITE v$VERSION" "$CYAN"
-    print_center "Enterprise Panel Management Platform" "$GRAY"
-    draw_line "="
-    print_center "Repository: $GH_USER/$GH_REPO" "$GRAY"
-    print_center "User: $(whoami) | Host: $(hostname -s)" "$GRAY"
-    local my_ip; my_ip=$(ip route get 1 2>/dev/null | awk '{print $7}' | head -1 || echo "N/A")
-    print_center "IP: $my_ip" "$GRAY"
-    draw_line "="
-}
+# Disable Apache
+systemctl stop apache2 >/dev/null 2>&1 || true
+systemctl disable apache2 >/dev/null 2>&1 || true
+systemctl mask apache2 >/dev/null 2>&1 || true
 
-# ---------------- Animation System ----------------
-play_chime() {
-    for _ in {1..3}; do
-        printf "\a"
-        sleep 0.05
-    done
-}
+apt update -y
+apt install -y curl wget unzip tar git redis-server gnupg software-properties-common \
+               mariadb-server nginx certbot python3-certbot-nginx
 
-neon_border() {
-    local colors=("\033[1;95m" "\033[1;96m" "\033[1;92m" "\033[1;93m" "\033[1;94m")
-    local line=""; for ((i=0; i<WIDTH; i++)); do line+="═"; done
-    
-    for cycle in {1..2}; do
-        for color in "${colors[@]}"; do
-            printf "\r${color}%s${NC}" "$line"
-            sleep 0.03
-        done
-    done
-    printf "\n"
-}
+# PHP 8.1
+add-apt-repository ppa:ondrej/php -y || true
+apt update -y
+apt install -y php8.1 php8.1-cli php8.1-fpm php8.1-mysql php8.1-gd php8.1-mbstring \
+               php8.1-xml php8.1-bcmath php8.1-curl php8.1-zip php8.1-intl
 
-progress_bar() {
-    local duration="${1:-1.5}"
-    local width=50
-    # Use bc if available, otherwise fallback to sleep 0.1
-    local has_bc; has_bc=$(command -v bc >/dev/null 2>&1 && echo "yes" || echo "no")
-    
-    for ((i=0; i<=width; i++)); do
-        local pc=$(( i * 100 / width ))
-        printf "\r${GREEN}["
-        printf "%${i}s" "" | tr ' ' '█'
-        printf "%$((width - i))s" "" | tr ' ' '░'
-        printf "] %3d%%${NC}" "$pc"
-        if [ "$has_bc" == "yes" ]; then
-            sleep "$(echo "scale=3; $duration/$width" | bc)"
-        else
-            sleep 0.03
-        fi
-    done
-    printf "\n"
-}
+# Database (auth_socket compatible)
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS panel;"
+mysql -u root -e "CREATE USER IF NOT EXISTS 'ptero'@'127.0.0.1' IDENTIFIED BY 'PteroDBPass!';"
+mysql -u root -e "GRANT ALL PRIVILEGES ON panel.* TO 'ptero'@'127.0.0.1'; FLUSH PRIVILEGES;"
 
-transition_screen() {
-    play_chime
-    printf "\n${CYAN}Initializing module..."
-    progress_bar 0.8
-    printf "${NC}\n"
-}
-
-# ---------------- Execution Wrapper ----------------
-execute_task() {
-    local desc="$1"
-    local cmd="$2"
-    
-    printf "\n${CYAN}▶ ${desc}...${NC}\n"
-    
-    (
-        while true; do
-            for s in "⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏"; do
-                printf "\r${CYAN}%s${NC} Processing" "$s"
-                sleep 0.08
-            done
-        done
-    ) & local spin_pid=$!
-    
-    set +e
-    eval "$cmd" > /tmp/ksh_install.log 2>&1
-    local code=$?
-    set -e
-    
-    kill "$spin_pid" 2>/dev/null || true
-    wait "$spin_pid" 2>/dev/null || true
-    
-    printf "\r"
-    if [ $code -eq 0 ]; then
-        printf "${GREEN}✓ ${desc} completed${NC}\n"
-    else
-        printf "${RED}✗ ${desc} failed (Code: $code)${NC}\n"
-        log_debug "Last output:"
-        tail -3 /tmp/ksh_install.log
-    fi
-}
-
-# ---------------- Modules ----------------
-boot_sequence() {
-    clear
-    neon_border
-    local frames=(
-        "    ██╗  ██╗███████╗    ██╗  ██╗███████╗"
-        "   ██║ ██╔╝██╔════╝    ██║ ██╔╝██╔════╝"
-        "   █████╔╝ ███████╗    █████╔╝ ███████╗"
-        "   ██╔═██╗ ╚════██║    ██╔═██╗ ╚════██║"
-        "   ██║  ██╗███████║    ██║  ██╗███████║"
-        "   ╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚══════╝"
-    )
-    for f in "${frames[@]}"; do
-        printf "  ${PURPLE}%s${NC}\n" "$f"
-        sleep 0.1
-    done
-    printf "\n${CYAN}      KS HOSTING - Enterprise Edition${NC}\n"
-    progress_bar 1.2
-}
-
-panel_hub() {
-    while true; do
-        print_header
-        print_center "PANEL HUB" "$YELLOW"
-        draw_line "-"
-        print_option "1" "Pterodactyl Panel" "$GREEN"
-        print_option "2" "PufferPanel" "$GREEN"
-        print_option "3" "MythicalDash" "$CYAN"
-        print_option "0" "Back" "$GRAY"
-        draw_line "="
-        read -p "Select: " c
-        case $c in
-            1) execute_task "Pterodactyl" "bash <(curl -s https://pterodactyl-installer.se)" ;;
-            2) execute_task "PufferPanel" "curl -s https://packagecloud.io/install/repositories/pufferpanel/pufferpanel/script.deb.sh | bash && apt-get install pufferpanel" ;;
-            0) return ;;
-        esac
-        read -p "Press Enter..." pause
-    done
-}
-
-blueprint_manager() {
-    while true; do
-        print_header
-        print_center "BLUEPRINT MANAGER" "$MAGENTA"
-        draw_line "-"
-        print_option "1" "Install Framework"
-        print_option "2" "Addon Marketplace"
-        print_option "0" "Back" "$GRAY"
-        draw_line "="
-        read -p "Select: " c
-        case $c in
-            1) execute_task "Blueprint" "cd $PANEL_DIR && wget -q ${BASE_URL}/blueprint-installer.sh -O b.sh && chmod +x b.sh && ./b.sh" ;;
-            0) return ;;
-        esac
-        read -p "Press Enter..." pause
-    done
-}
-
-# ---------------- Main Loop ----------------
-main_menu() {
-    while true; do
-        print_header
-        print_center "MAIN CONTROL PANEL" "$GREEN"
-        draw_line "-"
-        print_option "1" "Panel Installation Hub" "$YELLOW"
-        print_option "2" "Blueprint & Addon Manager" "$MAGENTA"
-        print_option "3" "System Toolbox" "$ORANGE"
-        draw_line "-"
-        print_option "0" "Exit" "$RED"
-        draw_line "="
-        
-        read -p "Select option: " choice
-        case $choice in
-            1) transition_screen; panel_hub ;;
-            2) transition_screen; blueprint_manager ;;
-            3) transition_screen; log_info "Toolbox opening..."; sleep 1 ;;
-            0) exit 0 ;;
-            *) log_error "Invalid selection"; sleep 1 ;;
-        esac
-    done
-}
-
-# Root Check
-if [[ $EUID -ne 0 ]]; then
-    echo -e "${RED}Please run as root!${NC}"
-    exit 1
+# Composer
+if ! command -v composer >/dev/null; then
+  curl -sS https://getcomposer.org/installer | php
+  mv composer.phar /usr/local/bin/composer
 fi
 
-trap 'log_error "Interrupted"; exit 1' INT TERM
-boot_sequence
-main_menu
+# Download Panel
+mkdir -p /var/www/pterodactyl
+cd /var/www/pterodactyl
+curl -Lo panel.tar.gz https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz
+tar -xzf panel.tar.gz
+rm panel.tar.gz
+chmod -R 755 storage/* bootstrap/cache
+
+cp .env.example .env
+composer install --no-dev --optimize-autoloader
+php artisan key:generate --force
+
+php artisan p:environment:setup \
+  --author="$ADMIN_EMAIL" \
+  --url="https://$PANEL_DOMAIN" \
+  --timezone="Asia/Kolkata" \
+  --cache="redis" \
+  --session="redis" \
+  --queue="redis"
+
+php artisan p:environment:database \
+  --db-host="127.0.0.1" \
+  --db-port="3306" \
+  --db-database="panel" \
+  --db-username="ptero" \
+  --db-password="PteroDBPass!"
+
+php artisan migrate --seed --force
+
+php artisan p:user:make \
+  --email="$ADMIN_EMAIL" \
+  --username="$ADMIN_USER" \
+  --name-first="Admin" \
+  --name-last="User" \
+  --password="$ADMIN_PASS" \
+  --admin=1
+
+# Nginx
+cat > /etc/nginx/sites-available/pterodactyl.conf <<EOF
+server {
+    listen 80;
+    server_name $PANEL_DOMAIN;
+    root /var/www/pterodactyl/public;
+    index index.php;
+
+    location / { try_files \$uri \$uri/ /index.php?\$query_string; }
+
+    location ~ \.php\$ {
+        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
+}
+EOF
+
+ln -sf /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl restart nginx
+
+certbot --nginx -d "$PANEL_DOMAIN" -m "$ADMIN_EMAIL" --agree-tos --non-interactive || true
+
+ok "Panel Installed → https://$PANEL_DOMAIN"
+pause
+}
+
+# ============================================================
+# INSTALL WINGS
+# ============================================================
+install_wings() {
+banner
+echo "Installing Wings Daemon"
+
+curl -fsSL https://get.docker.com | sh
+mkdir -p /etc/pterodactyl /var/lib/pterodactyl
+
+curl -Lo /usr/local/bin/wings \
+https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64
+chmod +x /usr/local/bin/wings
+
+cat > /etc/systemd/system/wings.service <<EOF
+[Unit]
+Description=Pterodactyl Wings
+After=docker.service
+
+[Service]
+ExecStart=/usr/local/bin/wings
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now wings
+
+ok "Wings Installed"
+pause
+}
+
+# ============================================================
+# AUTO CONFIGURE WINGS
+# ============================================================
+configure_wings() {
+banner
+echo "Auto Configure Wings (Port 443)"
+
+read -rp "UUID: " W_UUID
+read -rp "Token ID: " W_TOKEN_ID
+read -rsp "Token: " W_TOKEN
+echo
+read -rp "Panel URL (https://panel.example.com): " W_REMOTE
+
+cat > /etc/pterodactyl/config.yml <<EOF
+debug: false
+uuid: $W_UUID
+token_id: $W_TOKEN_ID
+token: $W_TOKEN
+
+api:
+  host: 0.0.0.0
+  port: 443
+
+remote: "$W_REMOTE"
+EOF
+
+systemctl restart wings
+ok "Wings Configured (Port 443)"
+pause
+}
+
+# ============================================================
+# CLOUDFLARE TUNNEL
+# ============================================================
+install_cloudflare() {
+banner
+echo "Installing Cloudflare Tunnel"
+
+mkdir -p /usr/share/keyrings
+curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg \
+ | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
+
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main" \
+ | tee /etc/apt/sources.list.d/cloudflared.list
+
+apt update -y
+apt install -y cloudflared
+
+ok "Cloudflare Tunnel Installed"
+pause
+}
+
+# ============================================================
+# TAILSCALE
+# ============================================================
+install_tailscale() {
+banner
+echo "Installing Tailscale"
+curl -fsSL https://tailscale.com/install.sh | sh
+ok "Tailscale Installed"
+pause
+}
+
+# ============================================================
+# MAIN MENU
+# ============================================================
+while true; do
+banner
+echo "1) Install Panel"
+echo "2) Install Wings"
+echo "3) Auto Configure Wings (UUID / Token / Port 443)"
+echo "4) Install Cloudflare Tunnel"
+echo "5) Install Tailscale"
+echo "0) Exit"
+echo "--------------------------------------------"
+read -rp "Select option: " opt
+
+case "$opt" in
+  1) install_panel ;;
+  2) install_wings ;;
+  3) configure_wings ;;
+  4) install_cloudflare ;;
+  5) install_tailscale ;;
+  0) exit 0 ;;
+  *) warn "Invalid option"; pause ;;
+esac
+done
