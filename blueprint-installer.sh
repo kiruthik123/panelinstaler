@@ -6,15 +6,15 @@
 
 # ---------- THEME ----------
 BG_CLEAR="\033[2J\033[H"
-PRIMARY='\033[38;5;39m'     # Cyan Blue
-SECONDARY='\033[38;5;33m'   # Deep Blue
-SUCCESS='\033[38;5;82m'     # Green
-WARNING='\033[38;5;214m'    # Orange
-DANGER='\033[38;5;196m'     # Red
-TEXT='\033[38;5;252m'       # Light Gray
+PRIMARY='\033[38;5;39m'
+SECONDARY='\033[38;5;33m'
+SUCCESS='\033[38;5;82m'
+WARNING='\033[38;5;214m'
+DANGER='\033[38;5;196m'
+TEXT='\033[38;5;252m'
 RESET='\033[0m'
 
-# ---------- UI FUNCTIONS ----------
+# ---------- UI ----------
 ks_banner() {
   echo -e "$BG_CLEAR"
   echo -e "${PRIMARY}╔══════════════════════════════════════════╗${RESET}"
@@ -39,7 +39,9 @@ loading() {
   echo -e "${RESET}"
 }
 
-# ---------- PANEL MANAGER ----------
+# ==================================================
+# PANEL MANAGER
+# ==================================================
 panel_manager() {
   while true; do
     ks_banner
@@ -52,28 +54,61 @@ panel_manager() {
     read -p "➜ Select option: " p
 
     case $p in
-      1) loading; echo "▶ Pterodactyl Panel selected"; pause ;;
-      2) loading; echo "▶ Skyport Panel selected"; pause ;;
-      3) loading; echo "▶ Airlink Panel selected"; pause ;;
+      0) break ;;
+      1|2|3)
+        loading
+        echo "ℹ️ Panel installer hook ready"
+        pause
+        ;;
+      *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
+    esac
+  done
+}
+
+# ==================================================
+# BLUEPRINT MENU (UPDATED)
+# ==================================================
+blueprint() {
+  while true; do
+    ks_banner
+    echo -e "${SECONDARY}📘 BLUEPRINT${RESET}"
+    echo -e "${PRIMARY}1)${TEXT} 🚀 Install Blueprint${RESET}"
+    echo -e "${PRIMARY}2)${TEXT} 🧩 Blueprint Addons${RESET}"
+    echo -e "${DANGER}0)${TEXT} Back${RESET}"
+    echo
+    read -p "➜ Select option: " bp
+
+    case $bp in
+      1)
+        echo
+        read -p "Proceed with Blueprint install? (y/n): " confirm
+        if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+          loading
+          bash <(curl -fsSL https://raw.githubusercontent.com/kiruthik123/panelinstaler/main/blueprint-installer.sh)
+          pause
+        fi
+        ;;
+      2)
+        ks_banner
+        echo -e "${SECONDARY}🧩 BLUEPRINT ADDONS${RESET}"
+        echo -e "${TEXT}"
+        echo "• Extra modules"
+        echo "• Extensions"
+        echo "• Future KS Hosting addons"
+        echo
+        echo "⚠️ Addon installer will be linked here"
+        echo -e "${RESET}"
+        pause
+        ;;
       0) break ;;
       *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
     esac
   done
 }
 
-# ---------- BLUEPRINT ----------
-blueprint() {
-  ks_banner
-  echo -e "${SECONDARY}📘 BLUEPRINT${RESET}"
-  echo -e "${TEXT}"
-  echo "• Predefined setup templates"
-  echo "• Automated workflows (future)"
-  echo "• Standardized deployments"
-  echo -e "${RESET}"
-  pause
-}
-
-# ---------- SYSTEM TOOL ----------
+# ==================================================
+# SYSTEM TOOL
+# ==================================================
 system_tool() {
   while true; do
     ks_banner
@@ -83,19 +118,15 @@ system_tool() {
     echo -e "${PRIMARY}3)${TEXT} 🔑 Enable Root Access${RESET}"
     echo -e "${PRIMARY}4)${TEXT} 🔐 SSHX (tmate)${RESET}"
     echo -e "${PRIMARY}5)${TEXT} 🔄 Change SSH Port${RESET}"
-    echo -e "${PRIMARY}6)${TEXT} 🔒 Enable / Disable SSH Password Login${RESET}"
-    echo -e "${PRIMARY}7)${TEXT} ♻️  Restart SSH Service${RESET}"
+    echo -e "${PRIMARY}6)${TEXT} 🔒 SSH Password Login${RESET}"
+    echo -e "${PRIMARY}7)${TEXT} ♻️  Restart SSH${RESET}"
     echo -e "${PRIMARY}8)${TEXT} ⬆️  System Update${RESET}"
     echo -e "${DANGER}0)${TEXT} Back${RESET}"
     echo
     read -p "➜ Select option: " s
 
     case $s in
-      1)
-        loading
-        curl -fsSL https://tailscale.com/install.sh | sh
-        pause
-        ;;
+      1) loading; curl -fsSL https://tailscale.com/install.sh | sh; pause ;;
       2)
         loading
         mkdir -p --mode=0755 /usr/share/keyrings
@@ -106,52 +137,27 @@ system_tool() {
         apt update && apt install cloudflared -y
         pause
         ;;
-      3)
-        loading
-        passwd root
-        sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-        systemctl restart ssh
-        pause
-        ;;
-      4)
-        loading
-        apt install tmate -y
-        tmate
-        ;;
-      5)
-        read -p "🔢 Enter new SSH port: " port
-        sed -i "s/^#Port .*/Port $port/" /etc/ssh/sshd_config
-        systemctl restart ssh
-        echo "✅ SSH port changed to $port"
-        pause
-        ;;
+      3) loading; passwd root; sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart ssh; pause ;;
+      4) loading; apt install tmate -y; tmate ;;
+      5) read -p "Enter new SSH port: " port; sed -i "s/^#Port .*/Port $port/" /etc/ssh/sshd_config; systemctl restart ssh; pause ;;
       6)
         read -p "Enable password login? (yes/no): " ans
-        if [ "$ans" = "yes" ]; then
-          sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-        else
-          sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-        fi
+        [[ "$ans" == "yes" ]] && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+                              || sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
         systemctl restart ssh
         pause
         ;;
-      7)
-        systemctl restart ssh
-        echo "✅ SSH restarted"
-        pause
-        ;;
-      8)
-        loading
-        apt update && apt upgrade -y
-        pause
-        ;;
+      7) systemctl restart ssh; pause ;;
+      8) loading; apt update && apt upgrade -y; pause ;;
       0) break ;;
       *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
     esac
   done
 }
 
-# ---------- MAIN MENU ----------
+# ==================================================
+# MAIN MENU
+# ==================================================
 while true; do
   ks_banner
   echo -e "${PRIMARY}1)${TEXT} 🧩 Panel Manager${RESET}"
@@ -165,10 +171,7 @@ while true; do
     1) panel_manager ;;
     2) blueprint ;;
     3) system_tool ;;
-    0)
-      echo -e "${SUCCESS}👋 Thank you for using KS HOSTING${RESET}"
-      exit
-      ;;
+    0) echo -e "${SUCCESS}👋 Thank you for using KS HOSTING${RESET}"; exit ;;
     *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
   esac
 done
