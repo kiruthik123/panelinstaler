@@ -4,19 +4,19 @@
 # KS HOSTING • Professional Installer Menu
 # ==================================================
 
-# ---------- THEME ----------
+# ---------------- THEME ----------------
 BG_CLEAR="\033[2J\033[H"
-PRIMARY='\033[38;5;39m'
-SECONDARY='\033[38;5;33m'
-SUCCESS='\033[38;5;82m'
-WARNING='\033[38;5;214m'
-DANGER='\033[38;5;196m'
-TEXT='\033[38;5;252m'
+PRIMARY='\033[38;5;39m'     # Cyan Blue
+SECONDARY='\033[38;5;33m'   # Dark Blue
+SUCCESS='\033[38;5;82m'     # Green
+WARNING='\033[38;5;214m'    # Orange
+DANGER='\033[38;5;196m'     # Red
+TEXT='\033[38;5;252m'       # Light Gray
 RESET='\033[0m'
 
-BASE_BLUEPRINT_URL="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main"
+BASE_REPO="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main"
 
-# ---------- UI ----------
+# ---------------- UI FUNCTIONS ----------------
 ks_banner() {
   echo -e "$BG_CLEAR"
   echo -e "${PRIMARY}╔══════════════════════════════════════════╗${RESET}"
@@ -59,7 +59,7 @@ panel_manager() {
       0) break ;;
       1|2|3)
         loading
-        echo "ℹ️ Panel installer hook ready"
+        echo -e "${SUCCESS}✔ Panel installer hook ready${RESET}"
         pause
         ;;
       *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
@@ -76,11 +76,11 @@ blueprint_addons() {
     echo -e "${SECONDARY}🧩 BLUEPRINT ADDONS${RESET}"
     echo
     echo -e "${PRIMARY}1)${TEXT} 🎨 Euphoria Theme${RESET}"
-    echo -e "${PRIMARY}2)${TEXT} 🧱 Sidebar Layout${RESET}"
+    echo -e "${PRIMARY}2)${TEXT} 🧱 Sidebar${RESET}"
     echo -e "${PRIMARY}3)${TEXT} 🖼️ Server Backgrounds${RESET}"
     echo -e "${PRIMARY}4)${TEXT} 🔧 MC Tools${RESET}"
     echo -e "${PRIMARY}5)${TEXT} 📜 Player Listing${RESET}"
-    echo -e "${PRIMARY}6)${TEXT} 🔄 Recolor Panel${RESET}"
+    echo -e "${PRIMARY}6)${TEXT} 🔄 Recolor${RESET}"
     echo -e "${PRIMARY}7)${TEXT} 🧩 Vanilla Tweaks${RESET}"
     echo -e "${PRIMARY}8)${TEXT} 🌐 Subdomains${RESET}"
     echo -e "${PRIMARY}9)${TEXT} 👤 Player Manager${RESET}"
@@ -112,7 +112,7 @@ blueprint_addons() {
     read -p "Apply $bp ? (y/n): " c
     if [[ "$c" == "y" || "$c" == "Y" ]]; then
       loading
-      curl -fsSL "$BASE_BLUEPRINT_URL/$bp" | bash
+      curl -fsSL "$BASE_REPO/$bp" | bash
       pause
     fi
   done
@@ -136,7 +136,7 @@ blueprint() {
         read -p "Proceed with Blueprint install? (y/n): " y
         if [[ "$y" == "y" || "$y" == "Y" ]]; then
           loading
-          bash <(curl -fsSL "$BASE_BLUEPRINT_URL/blueprint-installer.sh")
+          bash <(curl -fsSL "$BASE_REPO/blueprint-installer.sh")
           pause
         fi
         ;;
@@ -155,7 +155,7 @@ system_tool() {
     ks_banner
     echo -e "${SECONDARY}🛠️  SYSTEM TOOL${RESET}"
     echo -e "${PRIMARY}1)${TEXT} 🌐 Install Tailscale${RESET}"
-    echo -e "${PRIMARY}2)${TEXT} ☁️  Install Cloudflare Tunnel${RESET}"
+    echo -e "${PRIMARY}2)${TEXT} ☁️ Install Cloudflare Tunnel${RESET}"
     echo -e "${PRIMARY}3)${TEXT} 🔑 Enable Root Access${RESET}"
     echo -e "${PRIMARY}4)${TEXT} 🔐 SSHX (tmate)${RESET}"
     echo -e "${PRIMARY}5)${TEXT} 🔄 Change SSH Port${RESET}"
@@ -223,7 +223,10 @@ while true; do
     1) panel_manager ;;
     2) blueprint ;;
     3) system_tool ;;
-    0) echo -e "${SUCCESS}👋 Thank you for using KS HOSTING${RESET}"; exit ;;
+    0)
+      echo -e "${SUCCESS}👋 Thank you for using KS HOSTING${RESET}"
+      exit
+      ;;
     *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
   esac
 done
