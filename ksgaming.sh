@@ -14,6 +14,8 @@ DANGER='\033[38;5;196m'
 TEXT='\033[38;5;252m'
 RESET='\033[0m'
 
+BASE_BLUEPRINT_URL="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main"
+
 # ---------- UI ----------
 ks_banner() {
   echo -e "$BG_CLEAR"
@@ -66,7 +68,58 @@ panel_manager() {
 }
 
 # ==================================================
-# BLUEPRINT MENU (UPDATED)
+# BLUEPRINT ADDONS
+# ==================================================
+blueprint_addons() {
+  while true; do
+    ks_banner
+    echo -e "${SECONDARY}🧩 BLUEPRINT ADDONS${RESET}"
+    echo
+    echo -e "${PRIMARY}1)${TEXT} 🎨 Euphoria Theme${RESET}"
+    echo -e "${PRIMARY}2)${TEXT} 🧱 Sidebar Layout${RESET}"
+    echo -e "${PRIMARY}3)${TEXT} 🖼️ Server Backgrounds${RESET}"
+    echo -e "${PRIMARY}4)${TEXT} 🔧 MC Tools${RESET}"
+    echo -e "${PRIMARY}5)${TEXT} 📜 Player Listing${RESET}"
+    echo -e "${PRIMARY}6)${TEXT} 🔄 Recolor Panel${RESET}"
+    echo -e "${PRIMARY}7)${TEXT} 🧩 Vanilla Tweaks${RESET}"
+    echo -e "${PRIMARY}8)${TEXT} 🌐 Subdomains${RESET}"
+    echo -e "${PRIMARY}9)${TEXT} 👤 Player Manager${RESET}"
+    echo -e "${PRIMARY}10)${TEXT} 🗳️ Votifier Tester${RESET}"
+    echo -e "${PRIMARY}11)${TEXT} 🧾 Simple Footers${RESET}"
+    echo -e "${PRIMARY}12)${TEXT} 🛠️ DB Edit${RESET}"
+    echo -e "${DANGER}0)${TEXT} Back${RESET}"
+    echo
+    read -p "➜ Select addon: " ad
+
+    case $ad in
+      1) bp="euphoriatheme.blueprint" ;;
+      2) bp="sidebar.blueprint" ;;
+      3) bp="serverbackgrounds.blueprint" ;;
+      4) bp="mctools.blueprint" ;;
+      5) bp="playerlisting.blueprint" ;;
+      6) bp="recolor.blueprint" ;;
+      7) bp="vanillatweaks.blueprint" ;;
+      8) bp="subdomains.blueprint" ;;
+      9) bp="minecraftplayermanager.blueprint" ;;
+      10) bp="votifierester.blueprint" ;;
+      11) bp="simplefooters.blueprint" ;;
+      12) bp="dbedit.blueprint" ;;
+      0) break ;;
+      *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1; continue ;;
+    esac
+
+    echo
+    read -p "Apply $bp ? (y/n): " c
+    if [[ "$c" == "y" || "$c" == "Y" ]]; then
+      loading
+      curl -fsSL "$BASE_BLUEPRINT_URL/$bp" | bash
+      pause
+    fi
+  done
+}
+
+# ==================================================
+# BLUEPRINT MENU
 # ==================================================
 blueprint() {
   while true; do
@@ -80,26 +133,14 @@ blueprint() {
 
     case $bp in
       1)
-        echo
-        read -p "Proceed with Blueprint install? (y/n): " confirm
-        if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+        read -p "Proceed with Blueprint install? (y/n): " y
+        if [[ "$y" == "y" || "$y" == "Y" ]]; then
           loading
-          bash <(curl -fsSL https://raw.githubusercontent.com/kiruthik123/panelinstaler/main/blueprint-installer.sh)
+          bash <(curl -fsSL "$BASE_BLUEPRINT_URL/blueprint-installer.sh")
           pause
         fi
         ;;
-      2)
-        ks_banner
-        echo -e "${SECONDARY}🧩 BLUEPRINT ADDONS${RESET}"
-        echo -e "${TEXT}"
-        echo "• Extra modules"
-        echo "• Extensions"
-        echo "• Future KS Hosting addons"
-        echo
-        echo "⚠️ Addon installer will be linked here"
-        echo -e "${RESET}"
-        pause
-        ;;
+      2) blueprint_addons ;;
       0) break ;;
       *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
     esac
@@ -119,8 +160,8 @@ system_tool() {
     echo -e "${PRIMARY}4)${TEXT} 🔐 SSHX (tmate)${RESET}"
     echo -e "${PRIMARY}5)${TEXT} 🔄 Change SSH Port${RESET}"
     echo -e "${PRIMARY}6)${TEXT} 🔒 SSH Password Login${RESET}"
-    echo -e "${PRIMARY}7)${TEXT} ♻️  Restart SSH${RESET}"
-    echo -e "${PRIMARY}8)${TEXT} ⬆️  System Update${RESET}"
+    echo -e "${PRIMARY}7)${TEXT} ♻️ Restart SSH${RESET}"
+    echo -e "${PRIMARY}8)${TEXT} ⬆️ System Update${RESET}"
     echo -e "${DANGER}0)${TEXT} Back${RESET}"
     echo
     read -p "➜ Select option: " s
@@ -129,7 +170,7 @@ system_tool() {
       1) loading; curl -fsSL https://tailscale.com/install.sh | sh; pause ;;
       2)
         loading
-        mkdir -p --mode=0755 /usr/share/keyrings
+        mkdir -p /usr/share/keyrings
         curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg \
           | tee /usr/share/keyrings/cloudflare.gpg >/dev/null
         echo "deb [signed-by=/usr/share/keyrings/cloudflare.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main" \
@@ -137,13 +178,24 @@ system_tool() {
         apt update && apt install cloudflared -y
         pause
         ;;
-      3) loading; passwd root; sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config; systemctl restart ssh; pause ;;
+      3)
+        loading
+        passwd root
+        sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+        systemctl restart ssh
+        pause
+        ;;
       4) loading; apt install tmate -y; tmate ;;
-      5) read -p "Enter new SSH port: " port; sed -i "s/^#Port .*/Port $port/" /etc/ssh/sshd_config; systemctl restart ssh; pause ;;
+      5)
+        read -p "Enter new SSH port: " port
+        sed -i "s/^#Port .*/Port $port/" /etc/ssh/sshd_config
+        systemctl restart ssh
+        pause
+        ;;
       6)
-        read -p "Enable password login? (yes/no): " ans
-        [[ "$ans" == "yes" ]] && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-                              || sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+        read -p "Enable password login? (yes/no): " a
+        [[ "$a" == "yes" ]] && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+                            || sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
         systemctl restart ssh
         pause
         ;;
@@ -162,7 +214,7 @@ while true; do
   ks_banner
   echo -e "${PRIMARY}1)${TEXT} 🧩 Panel Manager${RESET}"
   echo -e "${PRIMARY}2)${TEXT} 📘 Blueprint${RESET}"
-  echo -e "${PRIMARY}3)${TEXT} 🛠️  System Tool${RESET}"
+  echo -e "${PRIMARY}3)${TEXT} 🛠️ System Tool${RESET}"
   echo -e "${DANGER}0)${TEXT} 🚪 Exit${RESET}"
   echo
   read -p "➜ Select option: " main
