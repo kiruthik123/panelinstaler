@@ -1,232 +1,205 @@
 #!/bin/bash
 
 # ==================================================
-# KS HOSTING • Professional Installer Menu
+# KS HOSTING • Professional Installer Menu (v2.0)
 # ==================================================
 
-# ---------------- THEME ----------------
+# ---------------- CONFIG & THEME ----------------
 BG_CLEAR="\033[2J\033[H"
-PRIMARY='\033[38;5;39m'     # Cyan Blue
-SECONDARY='\033[38;5;33m'   # Dark Blue
-SUCCESS='\033[38;5;82m'     # Green
-WARNING='\033[38;5;214m'    # Orange
-DANGER='\033[38;5;196m'     # Red
-TEXT='\033[38;5;252m'       # Light Gray
+PRIMARY='\033[38;5;39m'    # Cyan Blue
+SECONDARY='\033[38;5;33m'  # Dark Blue
+SUCCESS='\033[38;5;82m'    # Green
+WARNING='\033[38;5;214m'   # Orange
+DANGER='\033[38;5;196m'    # Red
+TEXT='\033[38;5;252m'      # Light Gray
 RESET='\033[0m'
 
 BASE_REPO="https://raw.githubusercontent.com/kiruthik123/panelinstaler/main"
+LOG_FILE="/var/log/ks_hosting.log"
+
+# ---------------- INITIAL CHECKS ----------------
+if [[ $EUID -ne 0 ]]; then
+   echo -e "${DANGER}❌ This script must be run as root.${RESET}" 
+   exit 1
+fi
 
 # ---------------- UI FUNCTIONS ----------------
 ks_banner() {
-  echo -e "$BG_CLEAR"
-  echo -e "${PRIMARY}╔══════════════════════════════════════════╗${RESET}"
-  echo -e "${PRIMARY}║${TEXT}              ☁️  KS HOSTING              ${PRIMARY}║${RESET}"
-  echo -e "${PRIMARY}║${SECONDARY}     Secure • Fast • Cloud Platform      ${PRIMARY}║${RESET}"
-  echo -e "${PRIMARY}║${TEXT}                BY KS GAMING              ${PRIMARY}║${RESET}"
-  echo -e "${PRIMARY}╚══════════════════════════════════════════╝${RESET}"
-  echo
+    echo -e "$BG_CLEAR"
+    echo -e "${PRIMARY}╔══════════════════════════════════════════╗${RESET}"
+    echo -e "${PRIMARY}║${TEXT}              ☁️  KS HOSTING               ${PRIMARY}║${RESET}"
+    echo -e "${PRIMARY}║${SECONDARY}      Secure • Fast • Cloud Platform      ${PRIMARY}║${RESET}"
+    echo -e "${PRIMARY}║${TEXT}               BY KS GAMING               ${PRIMARY}║${RESET}"
+    echo -e "${PRIMARY}╚══════════════════════════════════════════╝${RESET}"
+    echo
 }
 
-pause() {
-  echo
-  read -p "↩️  Press Enter to continue..."
-}
+msg() { echo -e "${PRIMARY}➜${RESET} ${TEXT}$1${RESET}"; }
+err() { echo -e "${DANGER}❌ $1${RESET}"; }
+success() { echo -e "${SUCCESS}✔ $1${RESET}"; }
 
 loading() {
-  echo -ne "${PRIMARY}⏳ Processing"
-  for i in {1..3}; do
-    echo -ne "."
-    sleep 0.4
-  done
-  echo -e "${RESET}"
+    local message=${1:-"Processing"}
+    echo -ne "${PRIMARY}⏳ $message"
+    for i in {1..3}; do
+        echo -ne "."
+        sleep 0.3
+    done
+    echo -e "${RESET}"
 }
 
-# ==================================================
-# PANEL MANAGER
-# ==================================================
-panel_manager() {
-  while true; do
-    ks_banner
-    echo -e "${SECONDARY}🧩 PANEL MANAGER${RESET}"
-    echo -e "${PRIMARY}1)${TEXT} Pterodactyl Panel${RESET}"
-    echo -e "${PRIMARY}2)${TEXT} Skyport Panel${RESET}"
-    echo -e "${PRIMARY}3)${TEXT} Airlink Panel${RESET}"
-    echo -e "${DANGER}0)${TEXT} Back${RESET}"
-    echo
-    read -p "➜ Select option: " p
-
-    case $p in
-      0) break ;;
-      1|2|3)
-        loading
-        echo -e "${SUCCESS}✔ Panel installer hook ready${RESET}"
-        pause
-        ;;
-      *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
-    esac
-  done
+# ---------------- LOGGING ----------------
+log_action() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
 }
 
-# ==================================================
-# BLUEPRINT ADDONS
-# ==================================================
-blueprint_addons() {
-  while true; do
-    ks_banner
-    echo -e "${SECONDARY}🧩 BLUEPRINT ADDONS${RESET}"
-    echo
-    echo -e "${PRIMARY}1)${TEXT} 🎨 Euphoria Theme${RESET}"
-    echo -e "${PRIMARY}2)${TEXT} 🧱 Sidebar${RESET}"
-    echo -e "${PRIMARY}3)${TEXT} 🖼️ Server Backgrounds${RESET}"
-    echo -e "${PRIMARY}4)${TEXT} 🔧 MC Tools${RESET}"
-    echo -e "${PRIMARY}5)${TEXT} 📜 Player Listing${RESET}"
-    echo -e "${PRIMARY}6)${TEXT} 🔄 Recolor${RESET}"
-    echo -e "${PRIMARY}7)${TEXT} 🧩 Vanilla Tweaks${RESET}"
-    echo -e "${PRIMARY}8)${TEXT} 🌐 Subdomains${RESET}"
-    echo -e "${PRIMARY}9)${TEXT} 👤 Player Manager${RESET}"
-    echo -e "${PRIMARY}10)${TEXT} 🗳️ Votifier Tester${RESET}"
-    echo -e "${PRIMARY}11)${TEXT} 🧾 Simple Footers${RESET}"
-    echo -e "${PRIMARY}12)${TEXT} 🛠️ DB Edit${RESET}"
-    echo -e "${DANGER}0)${TEXT} Back${RESET}"
-    echo
-    read -p "➜ Select addon: " ad
-
-    case $ad in
-      1) bp="euphoriatheme.blueprint" ;;
-      2) bp="sidebar.blueprint" ;;
-      3) bp="serverbackgrounds.blueprint" ;;
-      4) bp="mctools.blueprint" ;;
-      5) bp="playerlisting.blueprint" ;;
-      6) bp="recolor.blueprint" ;;
-      7) bp="vanillatweaks.blueprint" ;;
-      8) bp="subdomains.blueprint" ;;
-      9) bp="minecraftplayermanager.blueprint" ;;
-      10) bp="votifierester.blueprint" ;;
-      11) bp="simplefooters.blueprint" ;;
-      12) bp="dbedit.blueprint" ;;
-      0) break ;;
-      *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1; continue ;;
-    esac
-
-    echo
-    read -p "Apply $bp ? (y/n): " c
-    if [[ "$c" == "y" || "$c" == "Y" ]]; then
-      loading
-      curl -fsSL "$BASE_REPO/$bp" | bash
-      pause
+# ---------------- CORE TOOLS ----------------
+install_dependency() {
+    if ! command -v "$1" &> /dev/null; then
+        loading "Installing $1"
+        apt update && apt install "$1" -y >> "$LOG_FILE" 2>&1
     fi
-  done
 }
 
-# ==================================================
-# BLUEPRINT MENU
-# ==================================================
-blueprint() {
-  while true; do
-    ks_banner
-    echo -e "${SECONDARY}📘 BLUEPRINT${RESET}"
-    echo -e "${PRIMARY}1)${TEXT} 🚀 Install Blueprint${RESET}"
-    echo -e "${PRIMARY}2)${TEXT} 🧩 Blueprint Addons${RESET}"
-    echo -e "${DANGER}0)${TEXT} Back${RESET}"
-    echo
-    read -p "➜ Select option: " bp
+# ---------------- SUB-MENUS ----------------
+panel_manager() {
+    while true; do
+        ks_banner
+        echo -e "${SECONDARY}🧩 PANEL MANAGER${RESET}"
+        echo -e "${PRIMARY}1)${TEXT} Pterodactyl Panel${RESET}"
+        echo -e "${PRIMARY}2)${TEXT} Skyport Panel${RESET}"
+        echo -e "${PRIMARY}3)${TEXT} Airlink Panel${RESET}"
+        echo -e "${DANGER}0)${TEXT} Back${RESET}"
+        echo
+        read -p "➜ Select option: " p
 
-    case $bp in
-      1)
-        read -p "Proceed with Blueprint install? (y/n): " y
-        if [[ "$y" == "y" || "$y" == "Y" ]]; then
-          loading
-          bash <(curl -fsSL "$BASE_REPO/blueprint-installer.sh")
-          pause
+        case $p in
+            1) msg "Installing Pterodactyl..."; bash <(curl -sL https://pterodactyl-installer.se) ;;
+            2) msg "Installing Skyport..."; # Add your specific Skyport logic here
+               sleep 2 ;;
+            0) break ;;
+            *) err "Invalid option"; sleep 1 ;;
+        esac
+    done
+}
+
+blueprint_addons() {
+    while true; do
+        ks_banner
+        echo -e "${SECONDARY}🧩 BLUEPRINT ADDONS${RESET}"
+        echo -e "${PRIMARY}1)${TEXT} 🎨 Euphoria Theme     ${PRIMARY}5)${TEXT} 📜 Player Listing"
+        echo -e "${PRIMARY}2)${TEXT} 🧱 Sidebar            ${PRIMARY}6)${TEXT} 🔄 Recolor"
+        echo -e "${PRIMARY}3)${TEXT} 🖼️  Backgrounds       ${PRIMARY}7)${TEXT} 🧩 Vanilla Tweaks"
+        echo -e "${PRIMARY}4)${TEXT} 🔧 MC Tools           ${PRIMARY}8)${TEXT} 🌐 Subdomains"
+        echo -e "${DANGER}0)${TEXT} Back${RESET}"
+        echo
+        read -p "➜ Select addon: " ad
+
+        case $ad in
+            1) bp="euphoriatheme.blueprint" ;;
+            2) bp="sidebar.blueprint" ;;
+            3) bp="serverbackgrounds.blueprint" ;;
+            4) bp="mctools.blueprint" ;;
+            5) bp="playerlisting.blueprint" ;;
+            6) bp="recolor.blueprint" ;;
+            7) bp="vanillatweaks.blueprint" ;;
+            8) bp="subdomains.blueprint" ;;
+            0) break ;;
+            *) err "Invalid option"; sleep 1; continue ;;
+        esac
+
+        read -p "Apply $bp ? (y/n): " c
+        if [[ "$c" =~ ^[Yy]$ ]]; then
+            loading "Applying $bp"
+            curl -fsSL "$BASE_REPO/$bp" | bash | tee -a "$LOG_FILE"
+            success "Addon Applied"
+            read -p "Press Enter..."
         fi
-        ;;
-      2) blueprint_addons ;;
-      0) break ;;
-      *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
-    esac
-  done
+    done
 }
 
-# ==================================================
-# SYSTEM TOOL
-# ==================================================
 system_tool() {
-  while true; do
-    ks_banner
-    echo -e "${SECONDARY}🛠️  SYSTEM TOOL${RESET}"
-    echo -e "${PRIMARY}1)${TEXT} 🌐 Install Tailscale${RESET}"
-    echo -e "${PRIMARY}2)${TEXT} ☁️ Install Cloudflare Tunnel${RESET}"
-    echo -e "${PRIMARY}3)${TEXT} 🔑 Enable Root Access${RESET}"
-    echo -e "${PRIMARY}4)${TEXT} 🔐 SSHX (tmate)${RESET}"
-    echo -e "${PRIMARY}5)${TEXT} 🔄 Change SSH Port${RESET}"
-    echo -e "${PRIMARY}6)${TEXT} 🔒 SSH Password Login${RESET}"
-    echo -e "${PRIMARY}7)${TEXT} ♻️ Restart SSH${RESET}"
-    echo -e "${PRIMARY}8)${TEXT} ⬆️ System Update${RESET}"
-    echo -e "${DANGER}0)${TEXT} Back${RESET}"
-    echo
-    read -p "➜ Select option: " s
+    while true; do
+        ks_banner
+        echo -e "${SECONDARY}🛠️  SYSTEM TOOLS${RESET}"
+        echo -e "${PRIMARY}1)${TEXT} 🌐 Tailscale          ${PRIMARY}5)${TEXT} 🔄 Change SSH Port"
+        echo -e "${PRIMARY}2)${TEXT} ☁️  Cloudflare Tunnel  ${PRIMARY}6)${TEXT} 🔒 SSH Password Login"
+        echo -e "${PRIMARY}3)${TEXT} 🔑 Enable Root Access  ${PRIMARY}7)${TEXT} ♻️  Restart SSH"
+        echo -e "${PRIMARY}4)${TEXT} 🔐 SSHX (tmate)       ${PRIMARY}8)${TEXT} ⬆️  System Update"
+        echo -e "${DANGER}0)${TEXT} Back${RESET}"
+        echo
+        read -p "➜ Select option: " s
 
-    case $s in
-      1) loading; curl -fsSL https://tailscale.com/install.sh | sh; pause ;;
-      2)
-        loading
-        mkdir -p /usr/share/keyrings
-        curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg \
-          | tee /usr/share/keyrings/cloudflare.gpg >/dev/null
-        echo "deb [signed-by=/usr/share/keyrings/cloudflare.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main" \
-          | tee /etc/apt/sources.list.d/cloudflared.list
-        apt update && apt install cloudflared -y
-        pause
-        ;;
-      3)
-        loading
-        passwd root
-        sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-        systemctl restart ssh
-        pause
-        ;;
-      4) loading; apt install tmate -y; tmate ;;
-      5)
-        read -p "Enter new SSH port: " port
-        sed -i "s/^#Port .*/Port $port/" /etc/ssh/sshd_config
-        systemctl restart ssh
-        pause
-        ;;
-      6)
-        read -p "Enable password login? (yes/no): " a
-        [[ "$a" == "yes" ]] && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-                            || sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-        systemctl restart ssh
-        pause
-        ;;
-      7) systemctl restart ssh; pause ;;
-      8) loading; apt update && apt upgrade -y; pause ;;
-      0) break ;;
-      *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
-    esac
-  done
+        case $s in
+            1) loading; curl -fsSL https://tailscale.com/install.sh | sh; read -p "Enter..." ;;
+            2)
+                loading "Installing Cloudflared"
+                install_dependency "lsb-release"
+                mkdir -p /usr/share/keyrings
+                curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | tee /usr/share/keyrings/cloudflare.gpg >/dev/null
+                echo "deb [signed-by=/usr/share/keyrings/cloudflare.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/cloudflared.list
+                apt update && apt install cloudflared -y
+                success "Cloudflared Installed"
+                read -p "Enter..."
+                ;;
+            3)
+                msg "Setting root password..."
+                passwd root
+                sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+                systemctl restart ssh
+                success "Root access enabled and SSH restarted"
+                sleep 2
+                ;;
+            5)
+                read -p "Enter new SSH port: " port
+                if [[ $port =~ ^[0-9]+$ ]]; then
+                    sed -i "s/^#\?Port .*/Port $port/" /etc/ssh/sshd_config
+                    systemctl restart ssh
+                    success "Port changed to $port"
+                else
+                    err "Invalid port number"
+                fi
+                sleep 2
+                ;;
+            8)
+                loading "Updating System"
+                apt update && apt upgrade -y
+                success "Update Complete"
+                sleep 2
+                ;;
+            0) break ;;
+            *) err "Invalid option"; sleep 1 ;;
+        esac
+    done
 }
 
-# ==================================================
-# MAIN MENU
-# ==================================================
+# ---------------- MAIN LOOP ----------------
 while true; do
-  ks_banner
-  echo -e "${PRIMARY}1)${TEXT} 🧩 Panel Manager${RESET}"
-  echo -e "${PRIMARY}2)${TEXT} 📘 Blueprint${RESET}"
-  echo -e "${PRIMARY}3)${TEXT} 🛠️ System Tool${RESET}"
-  echo -e "${DANGER}0)${TEXT} 🚪 Exit${RESET}"
-  echo
-  read -p "➜ Select option: " main
+    ks_banner
+    echo -e "${PRIMARY}1)${TEXT} 🧩 Panel Manager${RESET}"
+    echo -e "${PRIMARY}2)${TEXT} 📘 Blueprint Framework${RESET}"
+    echo -e "${PRIMARY}3)${TEXT} 🛠️  System Tools${RESET}"
+    echo -e "${DANGER}0)${TEXT} 🚪 Exit${RESET}"
+    echo
+    read -p "➜ Select option: " main
 
-  case $main in
-    1) panel_manager ;;
-    2) blueprint ;;
-    3) system_tool ;;
-    0)
-      echo -e "${SUCCESS}👋 Thank you for using KS HOSTING${RESET}"
-      exit
-      ;;
-    *) echo -e "${DANGER}❌ Invalid option${RESET}"; sleep 1 ;;
-  esac
+    case $main in
+        1) panel_manager ;;
+        2) 
+            ks_banner
+            echo -e "${PRIMARY}1)${TEXT} Install Blueprint${RESET}"
+            echo -e "${PRIMARY}2)${TEXT} Blueprint Addons${RESET}"
+            read -p "➜ choice: " bc
+            [[ "$bc" == "1" ]] && bash <(curl -fsSL "$BASE_REPO/blueprint-installer.sh")
+            [[ "$bc" == "2" ]] && blueprint_addons
+            ;;
+        3) system_tool ;;
+        0)
+            ks_banner
+            echo -e "${SUCCESS}👋 Thank you for using KS HOSTING!${RESET}"
+            log_action "Script exited safely."
+            exit 0
+            ;;
+        *) err "Invalid selection"; sleep 1 ;;
+    esac
 done
