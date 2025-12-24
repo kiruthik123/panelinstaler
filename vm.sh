@@ -22,21 +22,20 @@ NC='\033[0m' # No Color
 display_header() {
     clear
     cat << "EOF"
-${BOLD}${RED}
-╔════════════════════════════════════════════════════════════════════════╗
-║                                                                        ║
-║  ██╗  ██╗███████╗      ██████╗  █████╗ ███╗   ███╗██╗███╗   ██╗ ██████╗║
-║  ██║ ██╔╝██╔════╝     ██╔════╝ ██╔══██╗████╗ ████║██║████╗  ██║██╔════╝║
-║  █████╔╝ ███████╗     ██║  ███╗███████║██╔████╔██║██║██╔██╗ ██║██║     ║
-║  ██╔═██╗ ╚════██║     ██║   ██║██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║     ║
-║  ██║  ██╗███████║     ╚██████╔╝██║  ██║██║ ╚═╝ ██║██║██║ ╚████║╚██████╗║
-║  ╚═╝  ╚═╝╚══════╝      ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝║
-║                                                                        ║
-║              ${WHITE}ENTERPRISE VIRTUALIZATION PLATFORM${RED}                ║
-║              ${WHITE}Powered by QEMU/KVM • KS GAMING Labs${RED}              ║
-║                                                                        ║
-╚════════════════════════════════════════════════════════════════════════╝
-${NC}
+
+  ╔══════════════════════════════════════════════════════════════════════════════╗
+  ║                                                                              ║
+  ║  ██╗  ██╗███████╗      ██████╗  █████╗ ███╗   ███╗██╗███╗   ██╗ ██████╗     ║
+  ║  ██║ ██╔╝██╔════╝     ██╔════╝ ██╔══██╗████╗ ████║██║████╗  ██║██╔════╝     ║
+  ║  █████╔╝ ███████╗     ██║  ███╗███████║██╔████╔██║██║██╔██╗ ██║██║  ███╗    ║
+  ║  ██╔═██╗ ╚════██║     ██║   ██║██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║   ██║    ║
+  ║  ██║  ██╗███████║     ╚██████╔╝██║  ██║██║ ╚═╝ ██║██║██║ ╚████║╚██████╔╝    ║
+  ║  ╚═╝  ╚═╝╚══════╝      ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝     ║
+  ║                                                                              ║
+  ║                     VIRTUAL MACHINE MANAGEMENT SYSTEM                        ║
+  ║                                                                              ║
+  ╚══════════════════════════════════════════════════════════════════════════════╝
+
 EOF
     echo -e "${BOLD}${CYAN}System Status:${NC}"
     echo -e "${WHITE}• Date: $(date)${NC}"
@@ -336,7 +335,7 @@ select_os_menu() {
     
     # Gaming Optimized OS Options
     declare -A OS_OPTIONS=(
-        ["KS Gaming Linux (Custom)"]="gaming|custom|https://ks-gaming.example.com/iso/ks-gaming-latest.img|ksgaming|gamer|Gamer123!"
+        ["KS GAMING Linux (Custom)"]="gaming|custom|https://ks-gaming.example.com/iso/ks-gaming-latest.img|ksgaming|gamer|Gamer123!"
         ["Ubuntu Gaming Edition"]="ubuntu|gamjammy|https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img|ubuntugame|gamer|Gamer123!"
         ["Fedora Workstation Gaming"]="fedora|ws40|https://download.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/x86_64/images/Fedora-Cloud-Base-40-1.14.x86_64.qcow2|fedoragame|gamer|Gamer123!"
         ["Windows 11 Gaming VM"]="windows|win11|https://windows-gaming.example.com/win11-gaming.img|win11game|Administrator|GamePass123!"
@@ -572,7 +571,7 @@ users:
     password: $(openssl passwd -6 "$PASSWORD" | tr -d '\n')
     groups: users, admin, audio, video, games, input
     lock_passwd: false
-    gecos: KS Gaming User
+    gecos: KS GAMING User
 
 chpasswd:
   list: |
@@ -1120,7 +1119,7 @@ main_menu() {
             7)
                 if [ $vm_count -gt 0 ]; then
                     read -p "$(print_status "INPUT" "Enter VM number to delete: ")" vm_num
-                    if [[ "$vm_num" =~ ^[0-9]+$ ]] && [ "$vm_num" -ge 1 ] && [ "$vm_num" -le $vm_count ]; then
+                    if [[ "$vm_num" =~ ^[0-9]+$ ]] && [ "$vm_num" -ge 1 ] && [ "$vm_name" -le $vm_count ]; then
                         delete_vm "${vms[$((vm_num-1))]}"
                     else
                         print_status "ERROR" "Invalid selection"
