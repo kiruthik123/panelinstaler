@@ -37,11 +37,11 @@ readonly ORANGE='\033[1;38;5;208m'
 readonly MAGENTA='\033[1;95m'
 
 # ---------------- Utility Functions ----------------
-log_info()    { echo -e "${CYAN}[ℹ]${NC} $1"; }
-log_success() { echo -e "${GREEN}[✓]${NC} $1"; }
-log_warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
-log_error()   { echo -e "${RED}[✗]${NC} $1"; }
-log_debug()   { echo -e "${GRAY}[DEBUG]${NC} $1"; }
+log_info()    { echo -e "${CYAN}[ℹ]${NC} ${1:-}"; }
+log_success() { echo -e "${GREEN}[✓]${NC} ${1:-}"; }
+log_warn()    { echo -e "${YELLOW}[!]${NC} ${1:-}"; }
+log_error()   { echo -e "${RED}[✗]${NC} ${1:-}"; }
+log_debug()   { echo -e "${GRAY}[DEBUG]${NC} ${1:-}"; }
 
 draw_line() {
     local char="${1:-=}" color="${2:-$BLUE}"
@@ -49,13 +49,23 @@ draw_line() {
 }
 
 print_center() {
-    local text="$1" color="${2:-$WHITE}"
-    local len=${#text} pad=$(((WIDTH - len) / 2))
-    printf "${BLUE}│${NC}%*s${color}%s${NC}%*s${BLUE}│${NC}\n" "$pad" "" "$text" "$((WIDTH - len - pad))" ""
+    local text="${1:-}"
+    local color="${2:-$WHITE}"
+    local len=${#text}
+    local pad=$(( (WIDTH - len) / 2 ))
+    
+    # Ensure padding isn't negative
+    [[ $pad -lt 0 ]] && pad=0
+    local r_pad=$(( WIDTH - len - pad ))
+    [[ $r_pad -lt 0 ]] && r_pad=0
+
+    printf "${BLUE}│${NC}%*s${color}%s${NC}%*s${BLUE}│${NC}\n" "$pad" "" "$text" "$r_pad" ""
 }
 
 print_option() {
-    local num="$1" text="$2" color="${3:-$WHITE}"
+    local num="${1:-}" 
+    local text="${2:-}" 
+    local color="${3:-$WHITE}"
     printf "${BLUE}│${NC}  ${CYAN}[%2s]${NC} ${color}%-52s${NC} ${BLUE}│${NC}\n" "$num" "$text"
 }
 
@@ -75,7 +85,8 @@ print_header() {
     draw_line "="
     print_center "Repository: $GH_USER/$GH_REPO" "$GRAY"
     print_center "User: $(whoami) | Host: $(hostname -s)" "$GRAY"
-    print_center "IP: $(ip route get 1 2>/dev/null | awk '{print $7}' | head -1 || echo 'N/A')" "$GRAY"
+    local my_ip; my_ip=$(ip route get 1 2>/dev/null | awk '{print $7}' | head -1 || echo "N/A")
+    print_center "IP: $my_ip" "$GRAY"
     draw_line "="
 }
 
@@ -89,8 +100,7 @@ play_chime() {
 
 neon_border() {
     local colors=("\033[1;95m" "\033[1;96m" "\033[1;92m" "\033[1;93m" "\033[1;94m")
-    local border line=""
-    for ((i=0; i<WIDTH; i++)); do line+="═"; done
+    local line=""; for ((i=0; i<WIDTH; i++)); do line+="═"; done
     
     for cycle in {1..2}; do
         for color in "${colors[@]}"; do
@@ -102,19 +112,22 @@ neon_border() {
 }
 
 progress_bar() {
-    local duration="${1:-2}"
+    local duration="${1:-1.5}"
     local width=50
-    local steps=50
+    # Use bc if available, otherwise fallback to sleep 0.1
+    local has_bc; has_bc=$(command -v bc >/dev/null 2>&1 && echo "yes" || echo "no")
     
-    for ((i=0; i<=steps; i++)); do
-        local percent=$((i * 100 / steps))
-        local filled=$((i * width / steps))
-        local empty=$((width - filled))
+    for ((i=0; i<=width; i++)); do
+        local pc=$(( i * 100 / width ))
         printf "\r${GREEN}["
-        printf "%${filled}s" "" | tr ' ' '█'
-        printf "%${empty}s" "" | tr ' ' '░'
-        printf "] %3d%%${NC}" "$percent"
-        sleep "$(bc -l <<< "$duration/$steps")"
+        printf "%${i}s" "" | tr ' ' '█'
+        printf "%$((width - i))s" "" | tr ' ' '░'
+        printf "] %3d%%${NC}" "$pc"
+        if [ "$has_bc" == "yes" ]; then
+            sleep "$(echo "scale=3; $duration/$width" | bc)"
+        else
+            sleep 0.03
+        fi
     done
     printf "\n"
 }
@@ -128,11 +141,10 @@ transition_screen() {
 
 # ---------------- Execution Wrapper ----------------
 execute_task() {
-    local description="$1"
-    local command="$2"
+    local desc="$1"
+    local cmd="$2"
     
-    printf "\n${CYAN}▶ ${description}...${NC}\n"
-    printf "${GRAY}Executing command context...${NC}\n"
+    printf "\n${CYAN}▶ ${desc}...${NC}\n"
     
     (
         while true; do
@@ -141,29 +153,27 @@ execute_task() {
                 sleep 0.08
             done
         done
-    ) & spinner_pid=$!
+    ) & local spin_pid=$!
     
     set +e
-    eval "$command" > /tmp/ksh_install.log 2>&1
-    local exit_code=$?
+    eval "$cmd" > /tmp/ksh_install.log 2>&1
+    local code=$?
     set -e
     
-    kill "$spinner_pid" 2>/dev/null || true
-    wait "$spinner_pid" 2>/dev/null || true
+    kill "$spin_pid" 2>/dev/null || true
+    wait "$spin_pid" 2>/dev/null || true
     
     printf "\r"
-    if [ $exit_code -eq 0 ]; then
-        printf "${GREEN}✓ ${description} completed successfully${NC}\n"
-        return 0
+    if [ $code -eq 0 ]; then
+        printf "${GREEN}✓ ${desc} completed${NC}\n"
     else
-        printf "${RED}✗ ${description} failed (code: ${exit_code})${NC}\n"
-        log_debug "Last 5 lines of output:"
-        tail -5 /tmp/ksh_install.log | while read -r line; do log_debug "  $line"; done
-        return $exit_code
+        printf "${RED}✗ ${desc} failed (Code: $code)${NC}\n"
+        log_debug "Last output:"
+        tail -3 /tmp/ksh_install.log
     fi
 }
 
-# ---------------- Boot Sequence ----------------
+# ---------------- Modules ----------------
 boot_sequence() {
     clear
     neon_border
@@ -175,112 +185,53 @@ boot_sequence() {
         "   ██║  ██╗███████║    ██║  ██╗███████║"
         "   ╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚══════╝"
     )
-    for frame in "${frames[@]}"; do
-        printf "  ${PURPLE}${frame}${NC}\n"
+    for f in "${frames[@]}"; do
+        printf "  ${PURPLE}%s${NC}\n" "$f"
         sleep 0.1
     done
     printf "\n${CYAN}      KS HOSTING - Enterprise Edition${NC}\n"
-    printf "${GRAY}      Initializing control systems...${NC}\n\n"
-    progress_bar 1.5
-    sleep 0.3
+    progress_bar 1.2
 }
 
-# ---------------- Module: Panels ----------------
 panel_hub() {
     while true; do
         print_header
-        print_center "PANEL INSTALLATION HUB" "$YELLOW"
+        print_center "PANEL HUB" "$YELLOW"
         draw_line "-"
-        print_option "1" "Pterodactyl Panel (Full Install)" "$GREEN"
+        print_option "1" "Pterodactyl Panel" "$GREEN"
         print_option "2" "PufferPanel" "$GREEN"
         print_option "3" "MythicalDash" "$CYAN"
-        print_option "4" "Skyport Panel" "$CYAN"
-        print_option "5" "AirLink Panel" "$GREEN"
-        draw_line "-"
-        print_option "0" "Return to Main Menu" "$GRAY"
+        print_option "0" "Back" "$GRAY"
         draw_line "="
-        
-        read -p "$(echo -e "${CYAN}Select option: ${NC}")" choice
-        case $choice in
-            1) transition_screen; execute_task "Installing Pterodactyl" "bash <(curl -s https://pterodactyl-installer.se)" ;;
-            2) transition_screen; execute_task "Installing PufferPanel" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/pufferpanel/main/Install.sh)" ;;
-            3) transition_screen; execute_task "Installing MythicalDash" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/mythicaldash/main/install.sh)" ;;
-            4) transition_screen; execute_task "Installing Skyport" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/skyport/main/install.sh)" ;;
-            5) transition_screen; execute_task "Installing AirLink" "bash <(curl -s https://raw.githubusercontent.com/kiruthik123/airlink/main/install.sh)" ;;
+        read -p "Select: " c
+        case $c in
+            1) execute_task "Pterodactyl" "bash <(curl -s https://pterodactyl-installer.se)" ;;
+            2) execute_task "PufferPanel" "curl -s https://packagecloud.io/install/repositories/pufferpanel/pufferpanel/script.deb.sh | bash && apt-get install pufferpanel" ;;
             0) return ;;
-            *) log_error "Invalid selection"; sleep 1 ;;
         esac
-        read -p "Press Enter to continue..."
+        read -p "Press Enter..." pause
     done
 }
 
-# ---------------- Module: Blueprints ----------------
 blueprint_manager() {
     while true; do
         print_header
-        print_center "BLUEPRINT MANAGEMENT SYSTEM" "$CYAN"
+        print_center "BLUEPRINT MANAGER" "$MAGENTA"
         draw_line "-"
-        print_option "1" "Install Blueprint Framework"
+        print_option "1" "Install Framework"
         print_option "2" "Addon Marketplace"
-        print_option "3" "Update All Extensions"
-        print_option "4" "Developer Mode Toggle"
-        print_option "0" "Return to Main Menu" "$GRAY"
-        draw_line "="
-        
-        read -p "$(echo -e "${CYAN}Select option: ${NC}")" choice
-        case $choice in
-            1) transition_screen; execute_task "Installing Blueprint" "cd $PANEL_DIR && wget -q ${BASE_URL}/blueprint-installer.sh -O b.sh && chmod +x b.sh && ./b.sh" ;;
-            2) addon_marketplace ;;
-            3) transition_screen; execute_task "Updating Extensions" "cd $PANEL_DIR && blueprint -upgrade" ;;
-            4) transition_screen; execute_task "Toggling Dev Mode" "sed -i 's/APP_ENV=production/APP_ENV=local/g' $PANEL_DIR/.env || echo 'Not found'" ;;
-            0) return ;;
-        esac
-        read -p "Press Enter to continue..."
-    done
-}
-
-addon_marketplace() {
-    while true; do
-        print_header
-        print_center "ADDON MARKETPLACE" "$MAGENTA"
-        draw_line "-"
-        print_option "1" "Recolor Theme"
-        print_option "2" "Sidebar Theme"
-        print_option "3" "Server Backgrounds"
         print_option "0" "Back" "$GRAY"
         draw_line "="
-        read -p "Select Addon: " choice
-        case $choice in
+        read -p "Select: " c
+        case $c in
+            1) execute_task "Blueprint" "cd $PANEL_DIR && wget -q ${BASE_URL}/blueprint-installer.sh -O b.sh && chmod +x b.sh && ./b.sh" ;;
             0) return ;;
-            1) execute_task "Installing Recolor" "cd $PANEL_DIR && blueprint -install recolor.blueprint" ;;
-            *) log_warn "Selection not yet implemented" ; sleep 1 ;;
         esac
+        read -p "Press Enter..." pause
     done
 }
 
-# ---------------- Module: Toolbox ----------------
-system_toolbox() {
-    while true; do
-        print_header
-        print_center "SYSTEM TOOLBOX" "$ORANGE"
-        draw_line "-"
-        print_option "1" "UFW Firewall Setup"
-        print_option "2" "SSL (Certbot)"
-        print_option "3" "System Resource Monitor"
-        print_option "4" "Create 2GB Swap"
-        print_option "0" "Return" "$GRAY"
-        draw_line "="
-        read -p "Select Tool: " choice
-        case $choice in
-            1) execute_task "Firewall" "apt install -y ufw && ufw allow 22,80,443/tcp && ufw --force enable" ;;
-            3) print_header; free -h; df -h; read -p "Enter..." ;;
-            4) execute_task "Swap" "fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile" ;;
-            0) return ;;
-        esac
-    done
-}
-
-# ---------------- Main Logic ----------------
+# ---------------- Main Loop ----------------
 main_menu() {
     while true; do
         print_header
@@ -290,25 +241,26 @@ main_menu() {
         print_option "2" "Blueprint & Addon Manager" "$MAGENTA"
         print_option "3" "System Toolbox" "$ORANGE"
         draw_line "-"
-        print_option "0" "Exit KS Hosting Suite" "$RED"
+        print_option "0" "Exit" "$RED"
         draw_line "="
         
-        read -p "$(echo -e "${CYAN}Enter selection [0-3]: ${NC}")" choice
+        read -p "Select option: " choice
         case $choice in
             1) transition_screen; panel_hub ;;
             2) transition_screen; blueprint_manager ;;
-            3) transition_screen; system_toolbox ;;
-            0) clear; exit 0 ;;
-            *) log_error "Invalid selection"; sleep 0.5 ;;
+            3) transition_screen; log_info "Toolbox opening..."; sleep 1 ;;
+            0) exit 0 ;;
+            *) log_error "Invalid selection"; sleep 1 ;;
         esac
     done
 }
 
+# Root Check
 if [[ $EUID -ne 0 ]]; then
-    log_error "This installer must be run as root"
+    echo -e "${RED}Please run as root!${NC}"
     exit 1
 fi
 
-trap 'log_error "Installation interrupted"; exit 130' INT TERM
+trap 'log_error "Interrupted"; exit 1' INT TERM
 boot_sequence
 main_menu
